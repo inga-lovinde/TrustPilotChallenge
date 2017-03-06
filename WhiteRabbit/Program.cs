@@ -17,9 +17,17 @@
         public static void Main()
         {
             var processor = new Processor("poultry outwits ants", 3);
+            var results = new List<string>();
             foreach (var phrase in processor.GeneratePhrases(ReadInput()))
             {
+                var hash = GetMd5Hash(phrase);
                 Console.WriteLine(GetMd5Hash(phrase) + ": " + phrase);
+                results.Add(phrase + ": " + hash);
+            }
+
+            foreach (var result in results.OrderBy(line => line))
+            {
+                Console.WriteLine(result);
             }
         }
 
