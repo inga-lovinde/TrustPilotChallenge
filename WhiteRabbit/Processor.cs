@@ -38,32 +38,52 @@
         public IEnumerable<string> GeneratePhrases(IEnumerable<string> words)
         {
             var filtered = FilterWords(words);
-            var dictionary = ImmutableStack.Create(filtered.Reverse().ToArray());
-            var anagrams = GenerateOrderedPhrases(this.NumberOfOccurrences, ImmutableStack.Create<int[]>(), dictionary)
-                .Select(list => list.Select(word => new string(word.Select(i => this.IntToChar[i]).ToArray())).ToArray());
-            var anagramsWithPermutations = anagrams.SelectMany(GeneratePermutations).Select(list => string.Join(" ", list));
-            return anagramsWithPermutations;
+            var formattedWords = FormatWords(filtered);
+
+            var dictionary = ImmutableStack.Create(formattedWords.Keys.ToArray());
+            var anagrams = GenerateOrderedPhrases(this.NumberOfOccurrences, ImmutableStack.Create<int[]>(), dictionary);
+            var anagramsWords = anagrams
+                .Select(list => ImmutableStack.Create(list.Select(wordArray => formattedWords[wordArray]).ToArray()))
+                .SelectMany(Flatten)
+                .Select(stack => stack.ToArray());
+
+            return anagramsWords.Select(list => string.Join(" ", list));
+            //return anagramsWords.SelectMany(GeneratePermutations).Select(list => string.Join(" ", list));
         }
 
-        private IEnumerable<int[]> FilterWords(IEnumerable<string> words)
+        private IEnumerable<string> FilterWords(IEnumerable<string> words)
         {
             return words
                 .Where(word => word.All(this.CharToInt.ContainsKey))
                 .OrderBy(word => word)
                 .Distinct()
-                .Select(word => word.Select(ch => this.CharToInt[ch]).ToArray())
-                .Where(word => word.GroupBy(ch => ch).All(group => group.Count() <= this.NumberOfOccurrences[group.Key]));
+                .Where(word => word.GroupBy(ch => this.CharToInt[ch]).All(group => group.Count() <= this.NumberOfOccurrences[group.Key]));
+        }
+
+        private Dictionary<int[], string[]> FormatWords(IEnumerable<string> filteredWords)
+        {
+            return filteredWords
+                .GroupBy(word => new string(word.OrderBy(ch => ch).ToArray()))
+                .ToDictionary(
+                    group => Enumerable.Range(0, DifferentChars).Select(i => group.Key.Count(ch => ch == IntToChar[i])).ToArray(),
+                    group => group.ToArray());
         }
 
         private int[] GetStatus(int[] originalState, int[] newWord, out int status)
         {
             var tmpArray = new int[DifferentChars];
-            Buffer.BlockCopy(originalState, 0, tmpArray, 0, ArraySize);
-
-            foreach (var ch in newWord)
-            {
-                --tmpArray[ch];
-            }
+            tmpArray[0] = originalState[0] - newWord[0];
+            tmpArray[1] = originalState[1] - newWord[1];
+            tmpArray[2] = originalState[2] - newWord[2];
+            tmpArray[3] = originalState[3] - newWord[3];
+            tmpArray[4] = originalState[4] - newWord[4];
+            tmpArray[5] = originalState[5] - newWord[5];
+            tmpArray[6] = originalState[6] - newWord[6];
+            tmpArray[7] = originalState[7] - newWord[7];
+            tmpArray[8] = originalState[8] - newWord[8];
+            tmpArray[9] = originalState[9] - newWord[9];
+            tmpArray[10] = originalState[10] - newWord[10];
+            tmpArray[11] = originalState[11] - newWord[11];
 
             // Negative if at least one element is negative; zero if all elements are zero; positive if all elements are non-negative and at least one element is positive
             status = tmpArray[0] | tmpArray[1] | tmpArray[2] | tmpArray[3] | tmpArray[4] | tmpArray[5] | tmpArray[6] | tmpArray[7] | tmpArray[8] | tmpArray[9] | tmpArray[10] | tmpArray[11];
@@ -83,7 +103,7 @@
                 this.Iterations++;
                 if (this.Iterations % 1000000 == 0)
                 {
-                    Console.WriteLine($"Iteration #{this.Iterations}: {string.Join(" ", phraseStack.Push(currentWord).Reverse().Select(word => new string(word.Select(ch => this.IntToChar[ch]).ToArray())))}");
+                    Console.WriteLine($"Iteration #{this.Iterations}: {string.Join(" ", phraseStack.Push(currentWord).Reverse().Select(word => new string(Enumerable.Range(0, DifferentChars).SelectMany(i => Enumerable.Repeat(IntToChar[i], word[i])).ToArray())))}");
                 }
 
                 int status;
@@ -110,6 +130,18 @@
             {
                 yield return permutation.Select(i => original[i]).ToArray();
             }
+        }
+
+        private IEnumerable<ImmutableStack<string>> Flatten(ImmutableStack<string[]> phrase)
+        {
+            if (phrase.IsEmpty)
+            {
+                return new[] { ImmutableStack.Create<string>() };
+            }
+
+            string[] wordVariants;
+            var newStack = phrase.Pop(out wordVariants);
+            return Flatten(newStack).SelectMany(remainder => wordVariants.Select(word => remainder.Push(word)));
         }
     }
 }
