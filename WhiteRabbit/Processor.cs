@@ -38,9 +38,10 @@
         public IEnumerable<string> GeneratePhrases(IEnumerable<string> words)
         {
             var filtered = FilterWords(words);
-            var formattedWords = FormatWords(filtered);
+            var formattedWordsList = FormatWords(filtered);
+            var formattedWords = formattedWordsList.ToDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
 
-            var dictionary = ImmutableStack.Create(formattedWords.Keys.ToArray());
+            var dictionary = ImmutableStack.Create(formattedWordsList.Select(tuple => tuple.Item1).ToArray());
             var anagrams = GenerateOrderedPhrases(this.NumberOfOccurrences, ImmutableStack.Create<int[]>(), dictionary);
             var anagramsWords = anagrams
                 .Select(list => ImmutableStack.Create(list.Select(wordArray => formattedWords[wordArray]).ToArray()))
@@ -59,13 +60,30 @@
                 .Where(word => word.GroupBy(ch => this.CharToInt[ch]).All(group => group.Count() <= this.NumberOfOccurrences[group.Key]));
         }
 
-        private Dictionary<int[], string[]> FormatWords(IEnumerable<string> filteredWords)
+        private int GetWordWeight(int[] word)
+        {
+            var result = 0;
+            var orderedChars = Enumerable.Range(0, DifferentChars)
+                .Select(i => new { Index = i, Count = this.NumberOfOccurrences[i] })
+                .OrderBy(charInfo => charInfo.Count)
+                .ThenBy(charInfo => charInfo.Index);
+
+            foreach (var charInfo in orderedChars)
+            {
+                result += word[charInfo.Index];
+                result *= charInfo.Count + 1;
+            }
+
+            return result;
+        }
+
+        private List<Tuple<int[], string[]>> FormatWords(IEnumerable<string> filteredWords)
         {
             return filteredWords
                 .GroupBy(word => new string(word.OrderBy(ch => ch).ToArray()))
-                .ToDictionary(
-                    group => Enumerable.Range(0, DifferentChars).Select(i => group.Key.Count(ch => ch == IntToChar[i])).ToArray(),
-                    group => group.ToArray());
+                .Select(group => Tuple.Create(Enumerable.Range(0, DifferentChars).Select(i => group.Key.Count(ch => ch == IntToChar[i])).ToArray(), group.ToArray()))
+                .OrderBy(tuple => GetWordWeight(tuple.Item1)) //so that letters that are more rare will come first
+                .ToList();
         }
 
         private int[] GetStatus(int[] originalState, int[] newWord, out int status)
