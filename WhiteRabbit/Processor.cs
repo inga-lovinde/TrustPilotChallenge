@@ -47,8 +47,7 @@
                 .SelectMany(Flatten)
                 .Select(stack => stack.ToArray());
 
-            return anagramsWords.Select(list => string.Join(" ", list));
-            //return anagramsWords.SelectMany(GeneratePermutations).Select(list => string.Join(" ", list));
+            return anagramsWords.SelectMany(GeneratePermutations).Select(list => string.Join(" ", list));
         }
 
         private IEnumerable<string> FilterWords(IEnumerable<string> words)

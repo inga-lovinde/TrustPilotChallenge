@@ -17,26 +17,18 @@
         public static void Main()
         {
             var processor = new Processor("poultry outwits ants", 3);
-            var results = new List<string>();
             foreach (var phrase in processor.GeneratePhrases(ReadInput()))
             {
-                var hash = GetMd5Hash(phrase);
-                Console.WriteLine(GetMd5Hash(phrase) + ": " + phrase);
-                results.Add(phrase + ": " + hash);
-            }
-
-            foreach (var result in results.OrderBy(line => line))
-            {
-                Console.WriteLine(result);
+                var hash = GetHash(phrase);
+                Console.WriteLine(hash + ": " + phrase);
             }
         }
 
-        private static string GetMd5Hash(string input)
+        private static string GetHash(string input)
         {
-            using (MD5 md5Hash = MD5.Create())
+            using (MD5 hasher = MD5.Create())
             {
-                // Convert the input string to a byte array and compute the hash.
-                byte[] data = md5Hash.ComputeHash(Encoding.UTF8.GetBytes(input));
+                var data = hasher.ComputeHash(Encoding.UTF8.GetBytes(input));
                 return string.Concat(data.Select(b => b.ToString("x2")));
             }
         }
