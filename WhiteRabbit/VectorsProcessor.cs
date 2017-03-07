@@ -32,14 +32,16 @@
 
         private long Iterations { get; set; } = 0;
 
-        public IEnumerable<Vector<byte>[]> GenerateSums(IEnumerable<Vector<byte>> vectors)
+
+        // Produces all sequences of vectors with the target sum
+        public IEnumerable<Vector<byte>[]> GenerateSequences(IEnumerable<Vector<byte>> vectors)
         {
             var filteredVectors = FilterVectors(vectors);
             var dictionary = ImmutableStack.Create(filteredVectors.ToArray());
-            var orderedSums = GenerateOrderedSums(this.Target, ImmutableStack.Create<Vector<byte>>(), dictionary);
-            var allSums = orderedSums.SelectMany(GeneratePermutations);
+            var unorderedSequences = GenerateUnorderedSequences(this.Target, ImmutableStack.Create<Vector<byte>>(), dictionary);
+            var allSequences = unorderedSequences.SelectMany(GeneratePermutations);
 
-            return allSums;
+            return allSequences;
         }
 
         private IEnumerable<Vector<byte>> FilterVectors(IEnumerable<Vector<byte>> vectors)
@@ -58,8 +60,11 @@
             }
         }
 
-        // This method takes most of the time, so everything related to it must be optimized
-        private IEnumerable<Vector<byte>[]> GenerateOrderedSums(Vector<byte> remainder, ImmutableStack<Vector<byte>> partialSumStack, ImmutableStack<Vector<byte>> dictionaryStack)
+        // This method takes most of the time, so everything related to it must be optimized.
+        // In every sequence, next vector always goes after the previous one from dictionary.
+        // E.g. if dictionary is [x, y, z], then only [x, y] sequence could be generated, and [y, x] will never be generated.
+        // That way, the complexity of search goes down by a factor of MaxVectorsCount! (as if [x, y] does not add up to a required target, there is no point in checking [y, x])
+        private IEnumerable<Vector<byte>[]> GenerateUnorderedSequences(Vector<byte> remainder, ImmutableStack<Vector<byte>> partialSumStack, ImmutableStack<Vector<byte>> dictionaryStack)
         {
             var count = partialSumStack.Count() + 1;
             if (count < this.MaxVectorsCount)
@@ -79,7 +84,7 @@
                     }
                     else if ((newRemainder & Negative) == Vector<byte>.Zero)
                     {
-                        foreach (var result in GenerateOrderedSums(newRemainder, partialSumStack.Push(currentVector), dictionaryTail))
+                        foreach (var result in GenerateUnorderedSequences(newRemainder, partialSumStack.Push(currentVector), dictionaryTail))
                         {
                             yield return result;
                         }
@@ -109,7 +114,7 @@
 
         private IEnumerable<T[]> GeneratePermutations<T>(T[] original)
         {
-            foreach (var permutation in PermutationsGenerator.HamiltonianPermutations(original.Length))
+            foreach (var permutation in PrecomputedPermutationsGenerator.HamiltonianPermutations(original.Length))
             {
                 yield return permutation.Select(i => original[i]).ToArray();
             }

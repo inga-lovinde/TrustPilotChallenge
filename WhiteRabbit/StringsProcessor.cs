@@ -22,6 +22,7 @@
 
         public IEnumerable<string> GeneratePhrases(IEnumerable<string> words)
         {
+            // Dictionary of vectors to array of words represented by this vector
             var formattedWords = words
                 .Distinct()
                 .Select(word => new { word, vector = this.VectorsConverter.GetVector(word) })
@@ -30,9 +31,10 @@
                 .GroupBy(tuple => tuple.vector)
                 .ToDictionary(group => group.Key, group => group.Select(tuple => tuple.word).ToArray());
 
+            // task of finding anagrams could be reduced to the task of finding sequences of dictionary vectors with the target sum
+            var sums = this.VectorsProcessor.GenerateSequences(formattedWords.Keys);
 
-            var sums = this.VectorsProcessor.GenerateSums(formattedWords.Keys);
-
+            // converting sequences of vectors to the sequences of words...
             var anagramsWords = sums
                 .Select(sum => ImmutableStack.Create(sum.Select(vector => formattedWords[vector]).ToArray()))
                 .SelectMany(Flatten)
@@ -41,14 +43,15 @@
             return anagramsWords.Select(list => string.Join(" ", list));
         }
 
-        private IEnumerable<ImmutableStack<string>> Flatten(ImmutableStack<string[]> phrase)
+        // Converts e.g. pair of variants [[a, b, c], [d, e]] into all possible pairs: [[a, d], [a, e], [b, d], [b, e], [c, d], [c, e]]
+        private IEnumerable<ImmutableStack<T>> Flatten<T>(ImmutableStack<T[]> phrase)
         {
             if (phrase.IsEmpty)
             {
-                return new[] { ImmutableStack.Create<string>() };
+                return new[] { ImmutableStack.Create<T>() };
             }
 
-            string[] wordVariants;
+            T[] wordVariants;
             var newStack = phrase.Pop(out wordVariants);
             return Flatten(newStack).SelectMany(remainder => wordVariants.Select(word => remainder.Push(word)));
         }
