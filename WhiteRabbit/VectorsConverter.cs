@@ -9,7 +9,7 @@
         public VectorsConverter(string sourceString)
         {
             var rawNumberOfOccurrences = sourceString.GroupBy(ch => ch).ToDictionary(group => group.Key, group => group.Count());
-            this.IntToChar = rawNumberOfOccurrences.OrderBy(kvp => kvp.Value).ThenBy(kvp => kvp.Key).Select(kvp => kvp.Key).ToArray();
+            this.IntToChar = rawNumberOfOccurrences.OrderBy(kvp => kvp.Key).Select(kvp => kvp.Key).ToArray();
             this.CharToInt = Enumerable.Range(0, this.IntToChar.Length).ToDictionary(i => this.IntToChar[i], i => i);
         }
 

@@ -35,7 +35,6 @@
         public IEnumerable<Vector<byte>[]> GenerateSums(IEnumerable<Vector<byte>> vectors)
         {
             var filteredVectors = FilterVectors(vectors);
-
             var dictionary = ImmutableStack.Create(filteredVectors.ToArray());
             var orderedSums = GenerateOrderedSums(this.Target, ImmutableStack.Create<Vector<byte>>(), dictionary);
             var allSums = orderedSums.SelectMany(GeneratePermutations);
@@ -46,9 +45,7 @@
         private IEnumerable<Vector<byte>> FilterVectors(IEnumerable<Vector<byte>> vectors)
         {
             return vectors
-                .Where(vector => ((this.Target - vector) & Negative) == Vector<byte>.Zero)
-                //.OrderByDescending(vector => this.GetWeight(vector)) //so that letters that are more rare will come first
-                .ToList();
+                .Where(vector => ((this.Target - vector) & Negative) == Vector<byte>.Zero);
         }
 
         [Conditional("DEBUG")]
