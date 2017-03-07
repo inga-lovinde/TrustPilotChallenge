@@ -3,7 +3,7 @@
     using System.Collections.Generic;
     using System.Linq;
 
-    internal class PrecomputedPermutationsGenerator
+    internal static class PrecomputedPermutationsGenerator
     {
         private static PermutationsGenerator.Permutation[] Permutations1 { get; } = PermutationsGenerator.HamiltonianPermutations(1).ToArray();
 
@@ -17,7 +17,7 @@
 
         public static IEnumerable<PermutationsGenerator.Permutation> HamiltonianPermutations(int n)
         {
-            switch(n)
+            switch (n)
             {
                 case 1:
                     return Permutations1;

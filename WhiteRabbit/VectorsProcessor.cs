@@ -32,14 +32,13 @@
 
         private long Iterations { get; set; } = 0;
 
-
         // Produces all sequences of vectors with the target sum
         public IEnumerable<Vector<byte>[]> GenerateSequences(IEnumerable<Vector<byte>> vectors)
         {
-            var filteredVectors = FilterVectors(vectors);
+            var filteredVectors = this.FilterVectors(vectors);
             var dictionary = ImmutableStack.Create(filteredVectors.ToArray());
-            var unorderedSequences = GenerateUnorderedSequences(this.Target, ImmutableStack.Create<Vector<byte>>(), dictionary);
-            var allSequences = unorderedSequences.SelectMany(GeneratePermutations);
+            var unorderedSequences = this.GenerateUnorderedSequences(this.Target, ImmutableStack.Create<Vector<byte>>(), dictionary);
+            var allSequences = unorderedSequences.SelectMany(this.GeneratePermutations);
 
             return allSequences;
         }
@@ -75,7 +74,7 @@
                     Vector<byte> currentVector;
                     var nextDictionaryTail = dictionaryTail.Pop(out currentVector);
 
-                    DebugState(partialSumStack, currentVector);
+                    this.DebugState(partialSumStack, currentVector);
 
                     var newRemainder = remainder - currentVector;
                     if (newRemainder == Vector<byte>.Zero)
@@ -84,7 +83,7 @@
                     }
                     else if ((newRemainder & Negative) == Vector<byte>.Zero)
                     {
-                        foreach (var result in GenerateUnorderedSequences(newRemainder, partialSumStack.Push(currentVector), dictionaryTail))
+                        foreach (var result in this.GenerateUnorderedSequences(newRemainder, partialSumStack.Push(currentVector), dictionaryTail))
                         {
                             yield return result;
                         }
@@ -101,7 +100,7 @@
                     Vector<byte> currentVector;
                     dictionaryTail = dictionaryTail.Pop(out currentVector);
 
-                    DebugState(partialSumStack, currentVector);
+                    this.DebugState(partialSumStack, currentVector);
 
                     var newRemainder = remainder - currentVector;
                     if (newRemainder == Vector<byte>.Zero)

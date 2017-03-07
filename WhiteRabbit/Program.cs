@@ -31,7 +31,7 @@
             {
                 if (expectedHashesAsVectors.Contains(result.Item2))
                 {
-                    Console.WriteLine("Found phrase: " + result.Item1);
+                    Console.WriteLine($"Found phrase: {result.Item1}");
                 }
             }
         }

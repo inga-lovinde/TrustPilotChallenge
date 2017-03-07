@@ -37,7 +37,7 @@
             // converting sequences of vectors to the sequences of words...
             var anagramsWords = sums
                 .Select(sum => ImmutableStack.Create(sum.Select(vector => formattedWords[vector]).ToArray()))
-                .SelectMany(Flatten)
+                .SelectMany(this.Flatten)
                 .Select(stack => stack.ToArray());
 
             return anagramsWords.Select(list => string.Join(" ", list));
@@ -53,7 +53,7 @@
 
             T[] wordVariants;
             var newStack = phrase.Pop(out wordVariants);
-            return Flatten(newStack).SelectMany(remainder => wordVariants.Select(word => remainder.Push(word)));
+            return this.Flatten(newStack).SelectMany(remainder => wordVariants.Select(word => remainder.Push(word)));
         }
     }
 }
