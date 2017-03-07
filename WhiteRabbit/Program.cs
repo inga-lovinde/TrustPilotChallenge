@@ -16,7 +16,7 @@
         /// </summary>
         public static void Main()
         {
-            var processor = new Processor("poultry outwits ants", 3);
+            var processor = new StringsProcessor("poultry outwits ants", 3);
             foreach (var phrase in processor.GeneratePhrases(ReadInput()))
             {
                 var hash = GetHash(phrase);

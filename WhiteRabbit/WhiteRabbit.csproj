@@ -54,9 +54,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="PermutationsGenerator.cs" />
-    <Compile Include="Processor.cs" />
+    <Compile Include="StringsProcessor.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="VectorsProcessor.cs" />
     <Compile Include="VectorsConverter.cs" />
   </ItemGroup>
   <ItemGroup>
