@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
+    using System.Numerics;
 
     internal class Processor
     {
@@ -12,24 +13,17 @@
 
         public Processor(string sourceString, int maxWordsCount)
         {
-            var rawNumberOfOccurrences = sourceString.Where(ch => ch != ' ').GroupBy(ch => ch).ToDictionary(group => group.Key, group => group.Count());
-            this.IntToChar = rawNumberOfOccurrences.Select(kvp => kvp.Key).OrderBy(ch => ch).ToArray();
-            if (this.IntToChar.Length != DifferentChars)
-            {
-                throw new ArgumentException("Unsupported phrase", nameof(sourceString));
-            }
-            this.CharToInt = Enumerable.Range(0, DifferentChars).ToDictionary(i => this.IntToChar[i], i => i);
-            this.NumberOfOccurrences = Enumerable.Range(0, DifferentChars).Select(i => this.IntToChar[i]).Select(ch => rawNumberOfOccurrences.ContainsKey(ch) ? rawNumberOfOccurrences[ch] : 0).ToArray();
+            var filteredSource = new string(sourceString.Where(ch => ch != ' ').ToArray());
+            this.VectorsConverter = new VectorsConverter(filteredSource);
+            this.Target = this.VectorsConverter.GetVector(filteredSource).Value;
             this.MaxWordsCount = maxWordsCount;
         }
 
-        private Dictionary<char, int> CharToInt { get; }
+        private static Vector<byte> Negative { get; } = new Vector<byte>(Enumerable.Repeat((byte)128, 16).ToArray());
 
-        private char[] IntToChar { get; }
+        private VectorsConverter VectorsConverter { get; }
 
-        private int[] NumberOfOccurrences { get; }
-
-        private int TotalCharsNumber { get; }
+        private Vector<byte> Target { get; }
 
         private int MaxWordsCount { get; }
 
@@ -37,111 +31,94 @@
 
         public IEnumerable<string> GeneratePhrases(IEnumerable<string> words)
         {
-            var filtered = FilterWords(words);
-            var formattedWordsList = FormatWords(filtered);
+            var formattedWordsList = FormatWords(words);
             var formattedWords = formattedWordsList.ToDictionary(tuple => tuple.Item1, tuple => tuple.Item2);
 
             var dictionary = ImmutableStack.Create(formattedWordsList.Select(tuple => tuple.Item1).ToArray());
-            var anagrams = GenerateOrderedPhrases(this.NumberOfOccurrences, ImmutableStack.Create<int[]>(), dictionary);
-            var anagramsWords = anagrams
+            var anagrams = GenerateOrderedPhrases(this.Target, ImmutableStack.Create<Vector<byte>>(), dictionary);
+            var anagramsWithPermutations = anagrams.SelectMany(GeneratePermutations);
+            var anagramsWords = anagramsWithPermutations
                 .Select(list => ImmutableStack.Create(list.Select(wordArray => formattedWords[wordArray]).ToArray()))
                 .SelectMany(Flatten)
                 .Select(stack => stack.ToArray());
 
-            return anagramsWords.SelectMany(GeneratePermutations).Select(list => string.Join(" ", list));
+            return anagramsWords.Select(list => string.Join(" ", list));
         }
 
-        private IEnumerable<string> FilterWords(IEnumerable<string> words)
+        private List<Tuple<Vector<byte>, string[]>> FormatWords(IEnumerable<string> words)
         {
             return words
-                .Where(word => word.All(this.CharToInt.ContainsKey))
-                .OrderBy(word => word)
                 .Distinct()
-                .Where(word => word.GroupBy(ch => this.CharToInt[ch]).All(group => group.Count() <= this.NumberOfOccurrences[group.Key]));
-        }
-
-        private int GetWordWeight(int[] word)
-        {
-            var result = 0;
-            var orderedChars = Enumerable.Range(0, DifferentChars)
-                .Select(i => new { Index = i, Count = this.NumberOfOccurrences[i] })
-                .OrderBy(charInfo => charInfo.Count)
-                .ThenBy(charInfo => charInfo.Index);
-
-            foreach (var charInfo in orderedChars)
-            {
-                result += word[charInfo.Index];
-                result *= charInfo.Count + 1;
-            }
-
-            return result;
-        }
-
-        private List<Tuple<int[], string[]>> FormatWords(IEnumerable<string> filteredWords)
-        {
-            return filteredWords
-                .GroupBy(word => new string(word.OrderBy(ch => ch).ToArray()))
-                .Select(group => Tuple.Create(Enumerable.Range(0, DifferentChars).Select(i => group.Key.Count(ch => ch == IntToChar[i])).ToArray(), group.ToArray()))
-                .OrderBy(tuple => GetWordWeight(tuple.Item1)) //so that letters that are more rare will come first
+                .Select(word => new { word, vector = this.VectorsConverter.GetVector(word) })
+                .Where(tuple => tuple.vector != null)
+                .Select(tuple => new { tuple.word, vector = tuple.vector.Value })
+                .Where(tuple => ((this.Target - tuple.vector) & Negative) == Vector<byte>.Zero)
+                .GroupBy(tuple => tuple.vector)
+                .Select(group => Tuple.Create(group.Key, group.Select(tuple => tuple.word).ToArray()))
+                .OrderByDescending(tuple => this.VectorsConverter.GetString(tuple.Item1)) //so that letters that are more rare will come first
                 .ToList();
         }
 
-        private int[] GetStatus(int[] originalState, int[] newWord, out int status)
-        {
-            var tmpArray = new int[DifferentChars];
-            tmpArray[0] = originalState[0] - newWord[0];
-            tmpArray[1] = originalState[1] - newWord[1];
-            tmpArray[2] = originalState[2] - newWord[2];
-            tmpArray[3] = originalState[3] - newWord[3];
-            tmpArray[4] = originalState[4] - newWord[4];
-            tmpArray[5] = originalState[5] - newWord[5];
-            tmpArray[6] = originalState[6] - newWord[6];
-            tmpArray[7] = originalState[7] - newWord[7];
-            tmpArray[8] = originalState[8] - newWord[8];
-            tmpArray[9] = originalState[9] - newWord[9];
-            tmpArray[10] = originalState[10] - newWord[10];
-            tmpArray[11] = originalState[11] - newWord[11];
-
-            // Negative if at least one element is negative; zero if all elements are zero; positive if all elements are non-negative and at least one element is positive
-            status = tmpArray[0] | tmpArray[1] | tmpArray[2] | tmpArray[3] | tmpArray[4] | tmpArray[5] | tmpArray[6] | tmpArray[7] | tmpArray[8] | tmpArray[9] | tmpArray[10] | tmpArray[11];
-            return tmpArray;
-        }
-
         // This method takes most of the time, so everything related to it must be optimized
-        private IEnumerable<int[][]> GenerateOrderedPhrases(int[] currentState, ImmutableStack<int[]> phraseStack, ImmutableStack<int[]> dictionaryStack)
+        private IEnumerable<Vector<byte>[]> GenerateOrderedPhrases(Vector<byte> currentState, ImmutableStack<Vector<byte>> phraseStack, ImmutableStack<Vector<byte>> dictionaryStack)
         {
-            var remainder = dictionaryStack;
             var count = phraseStack.Count() + 1;
-            while (!remainder.IsEmpty)
+            if (count < this.MaxWordsCount)
             {
-                int[] currentWord;
-                var nextRemainder = remainder.Pop(out currentWord);
-
-                this.Iterations++;
-                if (this.Iterations % 1000000 == 0)
+                var remainder = dictionaryStack;
+                while (!remainder.IsEmpty)
                 {
-                    Console.WriteLine($"Iteration #{this.Iterations}: {string.Join(" ", phraseStack.Push(currentWord).Reverse().Select(word => new string(Enumerable.Range(0, DifferentChars).SelectMany(i => Enumerable.Repeat(IntToChar[i], word[i])).ToArray())))}");
-                }
+                    Vector<byte> currentWord;
+                    var nextRemainder = remainder.Pop(out currentWord);
 
-                int status;
-                var state = GetStatus(currentState, currentWord, out status);
-                if (status > 0 && count < this.MaxWordsCount)
-                {
-                    foreach (var result in GenerateOrderedPhrases(state, phraseStack.Push(currentWord), remainder))
+                    this.Iterations++;
+                    if (this.Iterations % 1000000 == 0)
                     {
-                        yield return result;
+                        Console.WriteLine($"Iteration #{this.Iterations}: {string.Join(" ", phraseStack.Push(currentWord).Reverse().Select(word => this.VectorsConverter.GetString(word)))}");
                     }
-                }
-                else if (status == 0)
-                {
-                    yield return phraseStack.Push(currentWord).Reverse().ToArray();
-                }
 
-                remainder = nextRemainder;
+                    var newState = currentState - currentWord;
+                    if (newState == Vector<byte>.Zero)
+                    {
+                        yield return phraseStack.Push(currentWord).Reverse().ToArray();
+                    }
+                    else if ((newState & Negative) == Vector<byte>.Zero)
+                    {
+                        foreach (var result in GenerateOrderedPhrases(newState, phraseStack.Push(currentWord), remainder))
+                        {
+                            yield return result;
+                        }
+                    }
+
+                    remainder = nextRemainder;
+                }
+            }
+            else if (count == this.MaxWordsCount)
+            {
+                var remainder = dictionaryStack;
+                while (!remainder.IsEmpty)
+                {
+                    Vector<byte> currentWord;
+                    var nextRemainder = remainder.Pop(out currentWord);
+
+                    this.Iterations++;
+                    if (this.Iterations % 1000000 == 0)
+                    {
+                        Console.WriteLine($"Iteration #{this.Iterations}: {string.Join(" ", phraseStack.Push(currentWord).Reverse().Select(word => this.VectorsConverter.GetString(word)))}");
+                    }
+
+                    var newState = currentState - currentWord;
+                    if (newState == Vector<byte>.Zero)
+                    {
+                        yield return phraseStack.Push(currentWord).Reverse().ToArray();
+                    }
+
+                    remainder = nextRemainder;
+                }
             }
         }
 
-        private IEnumerable<string[]> GeneratePermutations(string[] original)
+        private IEnumerable<T[]> GeneratePermutations<T>(T[] original)
         {
             foreach (var permutation in PermutationsGenerator.HamiltonianPermutations(original.Length))
             {
