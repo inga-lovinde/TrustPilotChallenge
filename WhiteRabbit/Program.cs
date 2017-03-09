@@ -2,6 +2,7 @@
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Numerics;
     using System.Security.Cryptography;
@@ -17,6 +18,9 @@
         /// </summary>
         public static void Main()
         {
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+
             var processor = new StringsProcessor("poultry outwits ants", 4);
             var expectedHashes = new[]
             {
@@ -31,9 +35,12 @@
             {
                 if (expectedHashesAsVectors.Contains(result.Item2))
                 {
-                    Console.WriteLine($"Found phrase: {result.Item1}");
+                    Console.WriteLine($"Found phrase: {result.Item1} (spent {stopwatch.Elapsed})");
                 }
             }
+
+            stopwatch.Stop();
+            Console.WriteLine($"Total time spent: {stopwatch.Elapsed}");
         }
 
         // Code taken from http://stackoverflow.com/a/321404/831314
