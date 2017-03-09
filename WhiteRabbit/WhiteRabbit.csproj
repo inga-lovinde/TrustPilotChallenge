@@ -57,7 +57,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Extensions.cs" />
+    <Compile Include="DataflowBlockHelpers.cs" />
     <Compile Include="PrecomputedPermutationsGenerator.cs" />
     <Compile Include="PermutationsGenerator.cs" />
     <Compile Include="StringsProcessor.cs" />

@@ -34,20 +34,18 @@
 
         private Dictionary<Vector<byte>, string[]> VectorsToWords { get; }
 
-        public void PostUnorderedSequences(ITargetBlock<Vector<byte>[]> target) => this.VectorsProcessor.PostUnorderedSequences(target);
+        public void PostUnorderedSequences(ITargetBlock<Vector<byte>[]> target)
+        {
+            this.VectorsProcessor.GenerateUnorderedSequences().WriteToTargetBlock(target);
+        }
 
         public IPropagatorBlock<Vector<byte>[], string> CreateUnorderedSequencesToPhrasesTransform()
         {
-            var unorderedSequencesToOrderedSequences = this.VectorsProcessor.CreateUnorderedSequencesToOrderedSequencesTransform();
-            var orderedSequencesToWordVariants = this.CreateOrderedSequencesToWordVariantsTransform();
-            var wordVariantsToFlatWords = this.CreateWordVariantsToFlatWordsTransform();
-            var flatWordsToPhrases = this.CreateFlatWordsToPhrasesTransform();
-
-            unorderedSequencesToOrderedSequences.LinkForever(orderedSequencesToWordVariants);
-            orderedSequencesToWordVariants.LinkForever(wordVariantsToFlatWords);
-            wordVariantsToFlatWords.LinkForever(flatWordsToPhrases);
-
-            return DataflowBlock.Encapsulate(unorderedSequencesToOrderedSequences, flatWordsToPhrases);
+            return DataflowBlockHelpers.Id<Vector<byte>[]>()
+                .PipeMany(this.VectorsProcessor.UnorderedSequenceToOrderedSequences)
+                .Pipe(this.OrderedSequenceToWordVariants)
+                .PipeMany(this.WordVariantsToFlatWords)
+                .Pipe(this.FlatWordsToPhrase);
         }
 
         // Converts e.g. pair of variants [[a, b, c], [d, e]] into all possible pairs: [[a, d], [a, e], [b, d], [b, e], [c, d], [c, e]]
@@ -63,28 +61,19 @@
             return this.Flatten(newStack).SelectMany(remainder => wordVariants.Select(word => remainder.Push(word)));
         }
 
-        private IPropagatorBlock<Vector<byte>[], ImmutableStack<string[]>> CreateOrderedSequencesToWordVariantsTransform()
+        private ImmutableStack<string[]> OrderedSequenceToWordVariants(Vector<byte>[] sum)
         {
-            return new TransformBlock<Vector<byte>[], ImmutableStack<string[]>>(sum =>
-            {
-                return ImmutableStack.CreateRange(sum.Select(vector => this.VectorsToWords[vector]));
-            });
+            return ImmutableStack.CreateRange(sum.Select(vector => this.VectorsToWords[vector]));
         }
 
-        private IPropagatorBlock<ImmutableStack<string[]>, ImmutableStack<string>> CreateWordVariantsToFlatWordsTransform()
+        private IEnumerable<ImmutableStack<string>> WordVariantsToFlatWords(ImmutableStack<string[]> wordVariants)
         {
-            return new TransformManyBlock<ImmutableStack<string[]>, ImmutableStack<string>>(wordVariants =>
-            {
-                return this.Flatten(wordVariants);
-            });
+            return this.Flatten(wordVariants);
         }
 
-        private IPropagatorBlock<ImmutableStack<string>, string> CreateFlatWordsToPhrasesTransform()
+        private string FlatWordsToPhrase(ImmutableStack<string> words)
         {
-            return new TransformBlock<ImmutableStack<string>, string>(words =>
-            {
-                return string.Join(" ", words);
-            });
+            return string.Join(" ", words);
         }
     }
 }

@@ -7,7 +7,7 @@
     using System.Numerics;
     using System.Security.Cryptography;
     using System.Text;
-    using System.Threading.Tasks.Dataflow;
+
     /// <summary>
     /// Main class
     /// </summary>
@@ -35,39 +35,40 @@
 
                 var processor = new StringsProcessor("poultry outwits ants", 4, ReadInput());
 
-                var unorderedSequencesToPhrases = processor.CreateUnorderedSequencesToPhrasesTransform();
+                var startBlock = DataflowBlockHelpers.Id<Vector<byte>[]>();
 
-                var phrasesToPhrasesWithHash = new TransformBlock<string, PhraseWithHash>(phrase =>
-                {
-                    var hash = new Vector<byte>(hasher.ComputeHash(Encoding.ASCII.GetBytes(phrase)));
-                    return new PhraseWithHash(phrase, hash);
-                });
-
-                var phrasesWithHashFilter = new TransformManyBlock<PhraseWithHash, PhraseWithHash>(phraseWithHash =>
-                {
-                    if (!expectedHashesAsVectors.Contains(phraseWithHash.Hash))
+                var task = startBlock
+                    .Pipe(processor.CreateUnorderedSequencesToPhrasesTransform())
+                    .Pipe(phrase =>
                     {
-                        return Enumerable.Empty<PhraseWithHash>();
-                    }
+                        //Console.WriteLine("Found phrase: " + phrase);
 
-                    return new PhraseWithHash[]
+                        var hash = new Vector<byte>(hasher.ComputeHash(Encoding.ASCII.GetBytes(phrase)));
+                        return new PhraseWithHash(phrase, hash);
+                    })
+                    .PipeMany(phraseWithHash =>
                     {
-                        phraseWithHash,
-                    };
-                });
+                        //Console.WriteLine($"Found phrase with hash: " + phraseWithHash.Phrase);
 
-                var printPhrases = new ActionBlock<PhraseWithHash>(phraseWithHash =>
-                {
-                    Console.WriteLine($"Found phrase for hash {phraseWithHash.Hash}: {phraseWithHash.Phrase} (spent {stopwatch.Elapsed})");
-                });
+                        if (!expectedHashesAsVectors.Contains(phraseWithHash.Hash))
+                        {
+                            return Enumerable.Empty<PhraseWithHash>();
+                        }
 
-                unorderedSequencesToPhrases.LinkForever(phrasesToPhrasesWithHash);
-                phrasesToPhrasesWithHash.LinkForever(phrasesWithHashFilter);
-                phrasesWithHashFilter.LinkForever(printPhrases);
+                        return new PhraseWithHash[]
+                        {
+                            phraseWithHash,
+                        };
+                    })
+                    .LinkForever(phraseWithHash =>
+                    {
+                        Console.WriteLine($"Found phrase for hash {phraseWithHash.Hash}: {phraseWithHash.Phrase} (spent {stopwatch.Elapsed})");
+                    });
 
-                processor.PostUnorderedSequences(unorderedSequencesToPhrases);
+                Console.WriteLine($"Initialization complete: time spent: {stopwatch.Elapsed}");
+                processor.PostUnorderedSequences(startBlock);
 
-                printPhrases.Completion.Wait();
+                task.Wait();
                 Console.WriteLine($"Total time spent: {stopwatch.Elapsed}");
             }
         }

@@ -6,6 +6,7 @@
     using System.Diagnostics;
     using System.Linq;
     using System.Numerics;
+    using System.Threading.Tasks;
     using System.Threading.Tasks.Dataflow;
     internal class VectorsProcessor
     {
@@ -37,23 +38,17 @@
 
         private long Iterations { get; set; } = 0;
 
-        public IPropagatorBlock<Vector<byte>[], Vector<byte>[]> CreateUnorderedSequencesToOrderedSequencesTransform()
+        public IEnumerable<Vector<byte>[]> UnorderedSequenceToOrderedSequences(Vector<byte>[] sequence)
         {
-            return new TransformManyBlock<Vector<byte>[], Vector<byte>[]>(sequence =>
+            foreach (var permutation in PrecomputedPermutationsGenerator.HamiltonianPermutations(sequence.Length))
             {
-                return this.GeneratePermutations(sequence);
-            });
+                yield return permutation.Select(i => sequence[i]).ToArray();
+            }
         }
 
-        public void PostUnorderedSequences(ITargetBlock<Vector<byte>[]> target)
+        public IEnumerable<Vector<byte>[]> GenerateUnorderedSequences()
         {
-            var sequences = this.GenerateUnorderedSequences(this.Target, ImmutableStack.Create<Vector<byte>>(), this.Vectors);
-            foreach (var sequence in sequences)
-            {
-                target.Post(sequence);
-            }
-
-            target.Complete();
+            return this.GenerateUnorderedSequences(this.Target, ImmutableStack.Create<Vector<byte>>(), this.Vectors);
         }
 
         // We want words with more letters (and among these, words with more "rare" letters) to appear first, to reduce the searching time somewhat.
@@ -79,7 +74,7 @@
                 .OrderBy(vector => GetVectorWeight(vector, target));
         }
 
-        [Conditional("DEBUG")]
+        [Conditional("XDEBUG")]
         private void DebugState(ImmutableStack<Vector<byte>> partialSumStack, Vector<byte> currentVector)
         {
             this.Iterations++;
@@ -138,14 +133,6 @@
                         yield return partialSumStack.Push(currentVector).Reverse().ToArray();
                     }
                 }
-            }
-        }
-
-        private IEnumerable<T[]> GeneratePermutations<T>(T[] original)
-        {
-            foreach (var permutation in PrecomputedPermutationsGenerator.HamiltonianPermutations(original.Length))
-            {
-                yield return permutation.Select(i => original[i]).ToArray();
             }
         }
     }
