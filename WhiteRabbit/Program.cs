@@ -5,6 +5,8 @@
     using System.Diagnostics;
     using System.Linq;
     using System.Numerics;
+    using System.Reactive.Concurrency;
+    using System.Reactive.Linq;
     using System.Security.Cryptography;
     using System.Text;
 
@@ -31,11 +33,18 @@
 
             var expectedHashesAsVectors = new HashSet<Vector<byte>>(expectedHashes.Select(hash => new Vector<byte>(StringToByteArray(hash))));
 
-            foreach (var result in AddHashes(processor.GeneratePhrases(ReadInput())))
+            var phrases = processor.GeneratePhrases(ReadInput());
+            using (var hasher = MD5.Create())
             {
-                if (expectedHashesAsVectors.Contains(result.Item2))
+                var phrasesWithHashes = phrases
+                    .Select(phrase => new { phrase, hash = ComputeHash(hasher, phrase) })
+                    .SubscribeOn(NewThreadScheduler.Default);
+
+                var filteredPhrases = phrasesWithHashes.Where(tuple => expectedHashesAsVectors.Contains(tuple.hash));
+
+                foreach (var result in filteredPhrases.ToEnumerable())
                 {
-                    Console.WriteLine($"Found phrase: {result.Item1} (spent {stopwatch.Elapsed})");
+                    Console.WriteLine($"Found phrase with hash {HashToString(result.hash)}: {result.phrase} (spent {stopwatch.Elapsed})");
                 }
             }
 
@@ -52,16 +61,14 @@
                              .ToArray();
         }
 
-        private static IEnumerable<Tuple<string, Vector<byte>>> AddHashes(IEnumerable<string> input)
+        private static Vector<byte> ComputeHash(HashAlgorithm hasher, string phrase)
         {
-            using (MD5 hasher = MD5.Create())
-            {
-                foreach (var line in input)
-                {
-                    var data = hasher.ComputeHash(Encoding.ASCII.GetBytes(line));
-                    yield return Tuple.Create(line, new Vector<byte>(data));
-                }
-            }
+            return new Vector<byte>(hasher.ComputeHash(Encoding.ASCII.GetBytes(phrase)));
+        }
+
+        private static string HashToString(Vector<byte> hash)
+        {
+            return string.Concat(Enumerable.Range(0, 16).Select(i => hash[i].ToString("x2")));
         }
 
         private static IEnumerable<string> ReadInput()

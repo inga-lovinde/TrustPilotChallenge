@@ -6,6 +6,8 @@
     using System.Diagnostics;
     using System.Linq;
     using System.Numerics;
+    using System.Reactive.Concurrency;
+    using System.Reactive.Linq;
 
     internal class VectorsProcessor
     {
@@ -33,12 +35,18 @@
         private long Iterations { get; set; } = 0;
 
         // Produces all sequences of vectors with the target sum
-        public IEnumerable<Vector<byte>[]> GenerateSequences(IEnumerable<Vector<byte>> vectors)
+        public IObservable<Vector<byte>[]> GenerateSequences(IReadOnlyCollection<Vector<byte>> vectors)
         {
             var filteredVectors = this.FilterVectors(vectors);
             var dictionary = ImmutableStack.Create(filteredVectors.ToArray());
-            var unorderedSequences = this.GenerateUnorderedSequences(this.Target, ImmutableStack.Create<Vector<byte>>(), dictionary);
-            var allSequences = unorderedSequences.SelectMany(this.GeneratePermutations);
+
+            var unorderedSequences = this.GenerateUnorderedSequences(this.Target, ImmutableStack.Create<Vector<byte>>(), dictionary)
+                .ToObservable()
+                .SubscribeOn(NewThreadScheduler.Default);
+
+            var allSequences = unorderedSequences
+                .SelectMany(this.GeneratePermutations)
+                .SubscribeOn(NewThreadScheduler.Default);
 
             return allSequences;
         }
@@ -59,7 +67,7 @@
             return weight;
         }
 
-        private IEnumerable<Vector<byte>> FilterVectors(IEnumerable<Vector<byte>> vectors)
+        private IEnumerable<Vector<byte>> FilterVectors(IReadOnlyCollection<Vector<byte>> vectors)
         {
             return vectors
                 .Where(vector => ((this.Target - vector) & Negative) == Vector<byte>.Zero)

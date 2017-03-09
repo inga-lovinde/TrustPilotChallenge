@@ -1,8 +1,11 @@
 ﻿namespace WhiteRabbit
 {
+    using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
+    using System.Reactive.Concurrency;
+    using System.Reactive.Linq;
 
     internal class StringsProcessor
     {
@@ -20,7 +23,7 @@
 
         private VectorsProcessor VectorsProcessor { get; }
 
-        public IEnumerable<string> GeneratePhrases(IEnumerable<string> words)
+        public IObservable<string> GeneratePhrases(IEnumerable<string> words)
         {
             // Dictionary of vectors to array of words represented by this vector
             var formattedWords = words
@@ -32,15 +35,17 @@
                 .ToDictionary(group => group.Key, group => group.Select(tuple => tuple.word).ToArray());
 
             // task of finding anagrams could be reduced to the task of finding sequences of dictionary vectors with the target sum
-            var sums = this.VectorsProcessor.GenerateSequences(formattedWords.Keys);
+            var sums = this.VectorsProcessor.GenerateSequences(formattedWords.Keys).ObserveOn(Scheduler.Default);
 
             // converting sequences of vectors to the sequences of words...
             var anagramsWords = sums
                 .Select(sum => ImmutableStack.Create(sum.Select(vector => formattedWords[vector]).ToArray()))
                 .SelectMany(this.Flatten)
-                .Select(stack => stack.ToArray());
+                .Select(stack => stack.ToArray())
+                .SubscribeOn(NewThreadScheduler.Default);
 
-            return anagramsWords.Select(list => string.Join(" ", list));
+            return anagramsWords.Select(list => string.Join(" ", list))
+                .SubscribeOn(NewThreadScheduler.Default);
         }
 
         // Converts e.g. pair of variants [[a, b, c], [d, e]] into all possible pairs: [[a, d], [a, e], [b, d], [b, e], [c, d], [c, e]]
