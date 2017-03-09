@@ -43,10 +43,27 @@
             return allSequences;
         }
 
+        // We want words with more letters (and among these, words with more "rare" letters) to appear first, to reduce the searching time somewhat.
+        // Applying such a sort, we reduce the total number of triplets to check for anagrams from ~62M to ~29M.
+        // Total number of quadruplets is reduced from 1468M to mere 311M.
+        // Also, it produces the intended results faster (as these are more likely to contain longer words - e.g. "poultry outwits ants" is more likely than "p o u l t r y o u t w i t s a n t s").
+        // This method basically gives us the 1-norm of the vector in the space rescaled so that the target is [1, 1, ..., 1].
+        private int GetVectorWeight(Vector<byte> vector)
+        {
+            var weight = 0;
+            for (var i = 0; this.Target[i] != 0; i++)
+            {
+                weight += (720 * vector[i]) / this.Target[i]; // 720 = 6!, so that the result will be a whole number (unless Target[i] > 6)
+            }
+
+            return weight;
+        }
+
         private IEnumerable<Vector<byte>> FilterVectors(IEnumerable<Vector<byte>> vectors)
         {
             return vectors
-                .Where(vector => ((this.Target - vector) & Negative) == Vector<byte>.Zero);
+                .Where(vector => ((this.Target - vector) & Negative) == Vector<byte>.Zero)
+                .OrderBy(GetVectorWeight);
         }
 
         [Conditional("DEBUG")]
