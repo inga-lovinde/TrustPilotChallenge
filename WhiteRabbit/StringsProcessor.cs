@@ -4,7 +4,7 @@
     using System.Collections.Immutable;
     using System.Linq;
     using System.Numerics;
-
+    using System.Threading.Tasks.Dataflow;
     internal class StringsProcessor
     {
         public StringsProcessor(string sourceString, int maxWordsCount, IEnumerable<string> words)
@@ -28,24 +28,26 @@
                 this.VectorsConverter.GetString);
         }
 
-        private VectorsConverter VectorsConverter { get; }
-
         private VectorsProcessor VectorsProcessor { get; }
+
+        private VectorsConverter VectorsConverter { get; }
 
         private Dictionary<Vector<byte>, string[]> VectorsToWords { get; }
 
-        public IEnumerable<string> GeneratePhrases()
+        public void PostUnorderedSequences(ITargetBlock<Vector<byte>[]> target) => this.VectorsProcessor.PostUnorderedSequences(target);
+
+        public IPropagatorBlock<Vector<byte>[], string> CreateUnorderedSequencesToPhrasesTransform()
         {
-            // task of finding anagrams could be reduced to the task of finding sequences of dictionary vectors with the target sum
-            var sums = this.VectorsProcessor.GenerateSequences();
+            var unorderedSequencesToOrderedSequences = this.VectorsProcessor.CreateUnorderedSequencesToOrderedSequencesTransform();
+            var orderedSequencesToWordVariants = this.CreateOrderedSequencesToWordVariantsTransform();
+            var wordVariantsToFlatWords = this.CreateWordVariantsToFlatWordsTransform();
+            var flatWordsToPhrases = this.CreateFlatWordsToPhrasesTransform();
 
-            // converting sequences of vectors to the sequences of words...
-            var anagramsWords = sums
-                .Select(sum => ImmutableStack.Create(sum.Select(vector => this.VectorsToWords[vector]).ToArray()))
-                .SelectMany(this.Flatten)
-                .Select(stack => stack.ToArray());
+            unorderedSequencesToOrderedSequences.LinkForever(orderedSequencesToWordVariants);
+            orderedSequencesToWordVariants.LinkForever(wordVariantsToFlatWords);
+            wordVariantsToFlatWords.LinkForever(flatWordsToPhrases);
 
-            return anagramsWords.Select(list => string.Join(" ", list));
+            return DataflowBlock.Encapsulate(unorderedSequencesToOrderedSequences, flatWordsToPhrases);
         }
 
         // Converts e.g. pair of variants [[a, b, c], [d, e]] into all possible pairs: [[a, d], [a, e], [b, d], [b, e], [c, d], [c, e]]
@@ -59,6 +61,30 @@
             T[] wordVariants;
             var newStack = phrase.Pop(out wordVariants);
             return this.Flatten(newStack).SelectMany(remainder => wordVariants.Select(word => remainder.Push(word)));
+        }
+
+        private IPropagatorBlock<Vector<byte>[], ImmutableStack<string[]>> CreateOrderedSequencesToWordVariantsTransform()
+        {
+            return new TransformBlock<Vector<byte>[], ImmutableStack<string[]>>(sum =>
+            {
+                return ImmutableStack.CreateRange(sum.Select(vector => this.VectorsToWords[vector]));
+            });
+        }
+
+        private IPropagatorBlock<ImmutableStack<string[]>, ImmutableStack<string>> CreateWordVariantsToFlatWordsTransform()
+        {
+            return new TransformManyBlock<ImmutableStack<string[]>, ImmutableStack<string>>(wordVariants =>
+            {
+                return this.Flatten(wordVariants);
+            });
+        }
+
+        private IPropagatorBlock<ImmutableStack<string>, string> CreateFlatWordsToPhrasesTransform()
+        {
+            return new TransformBlock<ImmutableStack<string>, string>(words =>
+            {
+                return string.Join(" ", words);
+            });
         }
     }
 }

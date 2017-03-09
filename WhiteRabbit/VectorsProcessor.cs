@@ -6,7 +6,7 @@
     using System.Diagnostics;
     using System.Linq;
     using System.Numerics;
-
+    using System.Threading.Tasks.Dataflow;
     internal class VectorsProcessor
     {
         public VectorsProcessor(Vector<byte> target, int maxVectorsCount, IEnumerable<Vector<byte>> vectors, Func<Vector<byte>, string> vectorToString)
@@ -37,13 +37,23 @@
 
         private long Iterations { get; set; } = 0;
 
-        // Produces all sequences of vectors with the target sum
-        public IEnumerable<Vector<byte>[]> GenerateSequences()
+        public IPropagatorBlock<Vector<byte>[], Vector<byte>[]> CreateUnorderedSequencesToOrderedSequencesTransform()
         {
-            var unorderedSequences = this.GenerateUnorderedSequences(this.Target, ImmutableStack.Create<Vector<byte>>(), this.Vectors);
-            var allSequences = unorderedSequences.SelectMany(this.GeneratePermutations);
+            return new TransformManyBlock<Vector<byte>[], Vector<byte>[]>(sequence =>
+            {
+                return this.GeneratePermutations(sequence);
+            });
+        }
 
-            return allSequences;
+        public void PostUnorderedSequences(ITargetBlock<Vector<byte>[]> target)
+        {
+            var sequences = this.GenerateUnorderedSequences(this.Target, ImmutableStack.Create<Vector<byte>>(), this.Vectors);
+            foreach (var sequence in sequences)
+            {
+                target.Post(sequence);
+            }
+
+            target.Complete();
         }
 
         // We want words with more letters (and among these, words with more "rare" letters) to appear first, to reduce the searching time somewhat.
