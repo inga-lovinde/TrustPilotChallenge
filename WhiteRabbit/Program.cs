@@ -21,7 +21,7 @@
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            var processor = new StringsProcessor("poultry outwits ants", 4);
+            var processor = new StringsProcessor("poultry outwits ants", 4, ReadInput());
             var expectedHashes = new[]
             {
                 "e4820b45d2277f3844eac66c903e84be",
@@ -31,7 +31,7 @@
 
             var expectedHashesAsVectors = new HashSet<Vector<byte>>(expectedHashes.Select(hash => new Vector<byte>(StringToByteArray(hash))));
 
-            foreach (var result in AddHashes(processor.GeneratePhrases(ReadInput())))
+            foreach (var result in AddHashes(processor.GeneratePhrases()))
             {
                 if (expectedHashesAsVectors.Contains(result.Item2))
                 {

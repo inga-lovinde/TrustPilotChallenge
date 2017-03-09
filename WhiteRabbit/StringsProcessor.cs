@@ -3,27 +3,17 @@
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
+    using System.Numerics;
 
     internal class StringsProcessor
     {
-        public StringsProcessor(string sourceString, int maxWordsCount)
+        public StringsProcessor(string sourceString, int maxWordsCount, IEnumerable<string> words)
         {
             var filteredSource = new string(sourceString.Where(ch => ch != ' ').ToArray());
             this.VectorsConverter = new VectorsConverter(filteredSource);
-            this.VectorsProcessor = new VectorsProcessor(
-                this.VectorsConverter.GetVector(filteredSource).Value,
-                maxWordsCount,
-                this.VectorsConverter.GetString);
-        }
 
-        private VectorsConverter VectorsConverter { get; }
-
-        private VectorsProcessor VectorsProcessor { get; }
-
-        public IEnumerable<string> GeneratePhrases(IEnumerable<string> words)
-        {
             // Dictionary of vectors to array of words represented by this vector
-            var formattedWords = words
+            this.VectorsToWords = words
                 .Distinct()
                 .Select(word => new { word, vector = this.VectorsConverter.GetVector(word) })
                 .Where(tuple => tuple.vector != null)
@@ -31,12 +21,27 @@
                 .GroupBy(tuple => tuple.vector)
                 .ToDictionary(group => group.Key, group => group.Select(tuple => tuple.word).ToArray());
 
+            this.VectorsProcessor = new VectorsProcessor(
+                this.VectorsConverter.GetVector(filteredSource).Value,
+                maxWordsCount,
+                this.VectorsToWords.Keys,
+                this.VectorsConverter.GetString);
+        }
+
+        private VectorsConverter VectorsConverter { get; }
+
+        private VectorsProcessor VectorsProcessor { get; }
+
+        private Dictionary<Vector<byte>, string[]> VectorsToWords { get; }
+
+        public IEnumerable<string> GeneratePhrases()
+        {
             // task of finding anagrams could be reduced to the task of finding sequences of dictionary vectors with the target sum
-            var sums = this.VectorsProcessor.GenerateSequences(formattedWords.Keys);
+            var sums = this.VectorsProcessor.GenerateSequences();
 
             // converting sequences of vectors to the sequences of words...
             var anagramsWords = sums
-                .Select(sum => ImmutableStack.Create(sum.Select(vector => formattedWords[vector]).ToArray()))
+                .Select(sum => ImmutableStack.Create(sum.Select(vector => this.VectorsToWords[vector]).ToArray()))
                 .SelectMany(this.Flatten)
                 .Select(stack => stack.ToArray());
 

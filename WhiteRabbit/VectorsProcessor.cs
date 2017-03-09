@@ -9,11 +9,14 @@
 
     internal class VectorsProcessor
     {
-        public VectorsProcessor(Vector<byte> target, int maxVectorsCount, Func<Vector<byte>, string> vectorToString)
+        public VectorsProcessor(Vector<byte> target, int maxVectorsCount, IEnumerable<Vector<byte>> vectors, Func<Vector<byte>, string> vectorToString)
         {
             this.Target = target;
             this.MaxVectorsCount = maxVectorsCount;
             this.VectorToString = vectorToString;
+
+            var filteredVectors = FilterVectors(vectors, target);
+            this.Vectors = ImmutableStack.Create(filteredVectors.ToArray());
         }
 
         /// <summary>
@@ -28,16 +31,16 @@
 
         private int MaxVectorsCount { get; }
 
+        private ImmutableStack<Vector<byte>> Vectors { get; }
+
         private Func<Vector<byte>, string> VectorToString { get; }
 
         private long Iterations { get; set; } = 0;
 
         // Produces all sequences of vectors with the target sum
-        public IEnumerable<Vector<byte>[]> GenerateSequences(IEnumerable<Vector<byte>> vectors)
+        public IEnumerable<Vector<byte>[]> GenerateSequences()
         {
-            var filteredVectors = this.FilterVectors(vectors);
-            var dictionary = ImmutableStack.Create(filteredVectors.ToArray());
-            var unorderedSequences = this.GenerateUnorderedSequences(this.Target, ImmutableStack.Create<Vector<byte>>(), dictionary);
+            var unorderedSequences = this.GenerateUnorderedSequences(this.Target, ImmutableStack.Create<Vector<byte>>(), this.Vectors);
             var allSequences = unorderedSequences.SelectMany(this.GeneratePermutations);
 
             return allSequences;
@@ -48,22 +51,22 @@
         // Total number of quadruplets is reduced from 1468M to mere 311M.
         // Also, it produces the intended results faster (as these are more likely to contain longer words - e.g. "poultry outwits ants" is more likely than "p o u l t r y o u t w i t s a n t s").
         // This method basically gives us the 1-norm of the vector in the space rescaled so that the target is [1, 1, ..., 1].
-        private int GetVectorWeight(Vector<byte> vector)
+        private static int GetVectorWeight(Vector<byte> vector, Vector<byte> target)
         {
             var weight = 0;
-            for (var i = 0; this.Target[i] != 0; i++)
+            for (var i = 0; target[i] != 0; i++)
             {
-                weight += (720 * vector[i]) / this.Target[i]; // 720 = 6!, so that the result will be a whole number (unless Target[i] > 6)
+                weight += (720 * vector[i]) / target[i]; // 720 = 6!, so that the result will be a whole number (unless Target[i] > 6)
             }
 
             return weight;
         }
 
-        private IEnumerable<Vector<byte>> FilterVectors(IEnumerable<Vector<byte>> vectors)
+        private static IEnumerable<Vector<byte>> FilterVectors(IEnumerable<Vector<byte>> vectors, Vector<byte> target)
         {
             return vectors
-                .Where(vector => ((this.Target - vector) & Negative) == Vector<byte>.Zero)
-                .OrderBy(GetVectorWeight);
+                .Where(vector => ((target - vector) & Negative) == Vector<byte>.Zero)
+                .OrderBy(vector => GetVectorWeight(vector, target));
         }
 
         [Conditional("DEBUG")]
