@@ -13,9 +13,12 @@ WhiteRabbit.exe < wordlist
 Performance
 ===========
 
+Memory usage is minimal (for that kind of task), around 10-30MB.
+
 This solution is partially optimized for multi-threading.
 
 It is also somewhat optimized for likely intended phrases, as anagrams consisting of longer words are generated first.
+That's why the given hashes are solved much sooner than it takes to check all anagrams.
 
 Single-threaded performance on Sandy Bridge @2.8GHz is as follows:
 
@@ -29,6 +32,10 @@ Anagrams generation is not parallelized, as even single-threaded performance for
 
 Multi-threaded performance is as follows:
 
-* If only phrases of at most 4 words are allowed, then it takes 20 seconds to find and check all anagrams; all hashes are solved in first 1.5 seconds
+* If only phrases of at most 4 words are allowed, then it takes 20 seconds to find and check all anagrams; all hashes are solved in first 1 second.
 
 * If phrases of 5 words are allowed as well, then it takes around half an hour to find and check all anagrams; all hashes are solved in first 25 seconds. Around 50% of time is spent on MD5 computations for correct anagrams, so there is not a lot to optimize further.
+
+* If phrases of 6 words are allowed as well, then "more difficult" hash is solved in 50 seconds, "easiest" in 3.5 minutes, and "hard" in 6 minutes.
+
+* If phrases of 7 words are allowed as well, then "more difficult" hash is solved in 6 minutes.

@@ -25,7 +25,6 @@
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            var processor = new StringsProcessor(Encoding.ASCII.GetBytes(SourcePhrase), MaxWordsInPhrase);
             var expectedHashes = new[]
             {
                 "e4820b45d2277f3844eac66c903e84be",
@@ -35,7 +34,11 @@
 
             var expectedHashesAsVectors = expectedHashes.Select(hash => new Vector<byte>(HexadecimalStringToByteArray(hash))).ToArray();
 
-            processor.GeneratePhrases(ReadInput())
+            var processor = new StringsProcessor(Encoding.ASCII.GetBytes(SourcePhrase), MaxWordsInPhrase, ReadInput());
+
+            Console.WriteLine($"Initialization complete; time spent: {stopwatch.Elapsed}");
+
+            processor.GeneratePhrases()
                 .Select(phraseBytes => new { phraseBytes, hashVector = ComputeHashVector(phraseBytes) })
                 .Where(tuple => expectedHashesAsVectors.Contains(tuple.hashVector))
                 .Select(tuple => new { phrase = Encoding.ASCII.GetString(tuple.phraseBytes), hash = VectorToHexadecimalString(tuple.hashVector) })
@@ -54,6 +57,7 @@
                              .ToArray();
         }
 
+        // Bouncy Castle is used instead of standard .NET methods for performance reasons
         private static Vector<byte> ComputeHashVector(byte[] input)
         {
             var digest = new MD5Digest();
@@ -75,8 +79,6 @@
             {
                 yield return Encoding.ASCII.GetBytes(line);
             }
-
-            //System.Threading.Thread.Sleep(10000);
         }
     }
 }
