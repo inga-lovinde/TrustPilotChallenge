@@ -13,6 +13,10 @@
     /// </summary>
     public static class Program
     {
+        const string SourcePhrase = "poultry outwits ants";
+
+        const int MaxWordsInPhrase = 4;
+
         /// <summary>
         /// Main entry point
         /// </summary>
@@ -21,7 +25,7 @@
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            var processor = new StringsProcessor("poultry outwits ants", 4);
+            var processor = new StringsProcessor(Encoding.ASCII.GetBytes(SourcePhrase), MaxWordsInPhrase);
             var expectedHashes = new[]
             {
                 "e4820b45d2277f3844eac66c903e84be",
@@ -35,7 +39,7 @@
             {
                 if (expectedHashesAsVectors.Contains(result.Item2))
                 {
-                    Console.WriteLine($"Found phrase: {result.Item1} (spent {stopwatch.Elapsed})");
+                    Console.WriteLine($"Found phrase: {Encoding.ASCII.GetString(result.Item1)} (spent {stopwatch.Elapsed})");
                 }
             }
 
@@ -52,25 +56,27 @@
                              .ToArray();
         }
 
-        private static IEnumerable<Tuple<string, Vector<byte>>> AddHashes(IEnumerable<string> input)
+        private static IEnumerable<Tuple<byte[], Vector<byte>>> AddHashes(IEnumerable<byte[]> input)
         {
             using (MD5 hasher = MD5.Create())
             {
                 foreach (var line in input)
                 {
-                    var data = hasher.ComputeHash(Encoding.ASCII.GetBytes(line));
+                    var data = hasher.ComputeHash(line);
                     yield return Tuple.Create(line, new Vector<byte>(data));
                 }
             }
         }
 
-        private static IEnumerable<string> ReadInput()
+        private static IEnumerable<byte[]> ReadInput()
         {
             string line;
             while ((line = Console.ReadLine()) != null)
             {
-                yield return line;
+                yield return Encoding.ASCII.GetBytes(line);
             }
+
+            //System.Threading.Thread.Sleep(10000);
         }
     }
 }

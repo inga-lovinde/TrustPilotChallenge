@@ -10,18 +10,18 @@
     /// </summary>
     internal class VectorsConverter
     {
-        public VectorsConverter(string sourceString)
+        public VectorsConverter(byte[] sourceString)
         {
             var rawNumberOfOccurrences = sourceString.GroupBy(ch => ch).ToDictionary(group => group.Key, group => group.Count());
             this.IntToChar = rawNumberOfOccurrences.OrderBy(kvp => kvp.Key).Select(kvp => kvp.Key).ToArray();
             this.CharToInt = Enumerable.Range(0, this.IntToChar.Length).ToDictionary(i => this.IntToChar[i], i => i);
         }
 
-        private Dictionary<char, int> CharToInt { get; }
+        private Dictionary<byte, int> CharToInt { get; }
 
-        private char[] IntToChar { get; }
+        private byte[] IntToChar { get; }
 
-        public Vector<byte>? GetVector(string word)
+        public Vector<byte>? GetVector(byte[] word)
         {
             if (word.Any(ch => !this.CharToInt.ContainsKey(ch)))
             {
@@ -39,7 +39,7 @@
 
         public string GetString(Vector<byte> vector)
         {
-            return new string(Enumerable.Range(0, this.IntToChar.Length).SelectMany(i => Enumerable.Repeat(this.IntToChar[i], (int)vector[i])).ToArray());
+            return new string(Enumerable.Range(0, this.IntToChar.Length).SelectMany(i => Enumerable.Repeat((char)this.IntToChar[i], vector[i])).ToArray());
         }
     }
 }
