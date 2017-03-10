@@ -5,8 +5,8 @@
     using System.Diagnostics;
     using System.Linq;
     using System.Numerics;
-    using System.Security.Cryptography;
     using System.Text;
+    using Org.BouncyCastle.Crypto.Digests;
 
     /// <summary>
     /// Main class
@@ -15,7 +15,7 @@
     {
         const string SourcePhrase = "poultry outwits ants";
 
-        const int MaxWordsInPhrase = 4;
+        const int MaxWordsInPhrase = 3;
 
         /// <summary>
         /// Main entry point
@@ -33,7 +33,7 @@
                 "665e5bcb0c20062fe8abaaf4628bb154",
             };
 
-            var expectedHashesAsVectors = new HashSet<Vector<byte>>(expectedHashes.Select(hash => new Vector<byte>(StringToByteArray(hash))));
+            var expectedHashesAsVectors = expectedHashes.Select(hash => new Vector<byte>(StringToByteArray(hash))).ToArray();
 
             foreach (var result in AddHashes(processor.GeneratePhrases(ReadInput())))
             {
@@ -58,14 +58,19 @@
 
         private static IEnumerable<Tuple<byte[], Vector<byte>>> AddHashes(IEnumerable<byte[]> input)
         {
-            using (MD5 hasher = MD5.Create())
+            foreach (var line in input)
             {
-                foreach (var line in input)
-                {
-                    var data = hasher.ComputeHash(line);
-                    yield return Tuple.Create(line, new Vector<byte>(data));
-                }
+                yield return Tuple.Create(line, ComputeHash(line));
             }
+        }
+
+        private static Vector<byte> ComputeHash(byte[] input)
+        {
+            var digest = new MD5Digest();
+            digest.BlockUpdate(input, 0, input.Length);
+            byte[] hash = new byte[16];
+            digest.DoFinal(hash, 0);
+            return new Vector<byte>(hash);
         }
 
         private static IEnumerable<byte[]> ReadInput()
