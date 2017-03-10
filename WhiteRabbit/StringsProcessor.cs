@@ -21,7 +21,7 @@
 
         private VectorsProcessor VectorsProcessor { get; }
 
-        public IEnumerable<byte[]> GeneratePhrases(IEnumerable<byte[]> words)
+        public ParallelQuery<byte[]> GeneratePhrases(IEnumerable<byte[]> words)
         {
             // Dictionary of vectors to array of words represented by this vector
             var formattedWords = words

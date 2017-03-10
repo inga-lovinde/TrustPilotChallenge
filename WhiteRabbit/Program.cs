@@ -35,15 +35,11 @@
 
             var expectedHashesAsVectors = expectedHashes.Select(hash => new Vector<byte>(HexadecimalStringToByteArray(hash))).ToArray();
 
-            var result = processor.GeneratePhrases(ReadInput())
+            processor.GeneratePhrases(ReadInput())
                 .Select(phraseBytes => new { phraseBytes, hashVector = ComputeHashVector(phraseBytes) })
                 .Where(tuple => expectedHashesAsVectors.Contains(tuple.hashVector))
-                .Select(tuple => new { phrase = Encoding.ASCII.GetString(tuple.phraseBytes), hash = VectorToHexadecimalString(tuple.hashVector) });
-
-            foreach (var phraseInfo in result)
-            {
-                Console.WriteLine($"Found phrase for {phraseInfo.hash}: {phraseInfo.phrase} (spent {stopwatch.Elapsed})");
-            }
+                .Select(tuple => new { phrase = Encoding.ASCII.GetString(tuple.phraseBytes), hash = VectorToHexadecimalString(tuple.hashVector) })
+                .ForAll(phraseInfo => Console.WriteLine($"Found phrase for {phraseInfo.hash}: {phraseInfo.phrase} (spent {stopwatch.Elapsed})"));
 
             stopwatch.Stop();
             Console.WriteLine($"Total time spent: {stopwatch.Elapsed}");

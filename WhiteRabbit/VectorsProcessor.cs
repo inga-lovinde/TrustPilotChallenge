@@ -33,11 +33,12 @@
         private long Iterations { get; set; } = 0;
 
         // Produces all sequences of vectors with the target sum
-        public IEnumerable<Vector<byte>[]> GenerateSequences(IEnumerable<Vector<byte>> vectors)
+        public ParallelQuery<Vector<byte>[]> GenerateSequences(IEnumerable<Vector<byte>> vectors)
         {
             var filteredVectors = this.FilterVectors(vectors);
             var dictionary = ImmutableStack.Create(filteredVectors.ToArray());
-            var unorderedSequences = this.GenerateUnorderedSequences(this.Target, ImmutableStack.Create<Vector<byte>>(), dictionary);
+            var unorderedSequences = this.GenerateUnorderedSequences(this.Target, ImmutableStack.Create<Vector<byte>>(), dictionary)
+                .AsParallel();
             var allSequences = unorderedSequences.SelectMany(this.GeneratePermutations);
 
             return allSequences;
