@@ -15,6 +15,8 @@ Performance
 
 This solution is partially optimized for multi-threading.
 
+It is also somewhat optimized for likely intended phrases, as anagrams consisting of longer words are generated first.
+
 Single-threaded performance on Sandy Bridge @2.8GHz is as follows:
 
 * If only phrases of at most 3 words are allowed, then it takes 2.5 seconds to find and check all anagrams; all relevant hashes are solved in first 0.4 seconds;
@@ -29,4 +31,4 @@ Multi-threaded performance is as follows:
 
 * If only phrases of at most 4 words are allowed, then it takes 20 seconds to find and check all anagrams; all hashes are solved in first 1.5 seconds
 
-* If phrases of 5 words are allowed as well, then all hashes are solved in first 29 seconds. Around 50% of time is spent on MD5 computations for correct anagrams, so there is not a lot to optimize further.
+* If phrases of 5 words are allowed as well, then it takes around half an hour to find and check all anagrams; all hashes are solved in first 25 seconds. Around 50% of time is spent on MD5 computations for correct anagrams, so there is not a lot to optimize further.

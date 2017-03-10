@@ -47,6 +47,7 @@
         // We want words with more letters (and among these, words with more "rare" letters) to appear first, to reduce the searching time somewhat.
         // Applying such a sort, we reduce the total number of triplets to check for anagrams from ~62M to ~29M.
         // Total number of quadruplets is reduced from 1468M to mere 311M.
+        // And total number of quintuplets becomes reasonable 1412M.
         // Also, it produces the intended results faster (as these are more likely to contain longer words - e.g. "poultry outwits ants" is more likely than "p o u l t r y o u t w i t s a n t s").
         // This method basically gives us the 1-norm of the vector in the space rescaled so that the target is [1, 1, ..., 1].
         private int GetVectorWeight(Vector<byte> vector)
