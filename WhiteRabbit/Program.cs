@@ -15,7 +15,7 @@
     {
         const string SourcePhrase = "poultry outwits ants";
 
-        const int MaxWordsInPhrase = 3;
+        const int MaxWordsInPhrase = 4;
 
         /// <summary>
         /// Main entry point
@@ -33,14 +33,16 @@
                 "665e5bcb0c20062fe8abaaf4628bb154",
             };
 
-            var expectedHashesAsVectors = expectedHashes.Select(hash => new Vector<byte>(StringToByteArray(hash))).ToArray();
+            var expectedHashesAsVectors = expectedHashes.Select(hash => new Vector<byte>(HexadecimalStringToByteArray(hash))).ToArray();
 
-            foreach (var result in AddHashes(processor.GeneratePhrases(ReadInput())))
+            var result = processor.GeneratePhrases(ReadInput())
+                .Select(phraseBytes => new { phraseBytes, hashVector = ComputeHashVector(phraseBytes) })
+                .Where(tuple => expectedHashesAsVectors.Contains(tuple.hashVector))
+                .Select(tuple => new { phrase = Encoding.ASCII.GetString(tuple.phraseBytes), hash = VectorToHexadecimalString(tuple.hashVector) });
+
+            foreach (var phraseInfo in result)
             {
-                if (expectedHashesAsVectors.Contains(result.Item2))
-                {
-                    Console.WriteLine($"Found phrase: {Encoding.ASCII.GetString(result.Item1)} (spent {stopwatch.Elapsed})");
-                }
+                Console.WriteLine($"Found phrase for {phraseInfo.hash}: {phraseInfo.phrase} (spent {stopwatch.Elapsed})");
             }
 
             stopwatch.Stop();
@@ -48,7 +50,7 @@
         }
 
         // Code taken from http://stackoverflow.com/a/321404/831314
-        private static byte[] StringToByteArray(string hex)
+        private static byte[] HexadecimalStringToByteArray(string hex)
         {
             return Enumerable.Range(0, hex.Length)
                              .Where(x => x % 2 == 0)
@@ -56,21 +58,18 @@
                              .ToArray();
         }
 
-        private static IEnumerable<Tuple<byte[], Vector<byte>>> AddHashes(IEnumerable<byte[]> input)
-        {
-            foreach (var line in input)
-            {
-                yield return Tuple.Create(line, ComputeHash(line));
-            }
-        }
-
-        private static Vector<byte> ComputeHash(byte[] input)
+        private static Vector<byte> ComputeHashVector(byte[] input)
         {
             var digest = new MD5Digest();
             digest.BlockUpdate(input, 0, input.Length);
             byte[] hash = new byte[16];
             digest.DoFinal(hash, 0);
             return new Vector<byte>(hash);
+        }
+
+        private static string VectorToHexadecimalString(Vector<byte> hash)
+        {
+            return string.Concat(Enumerable.Range(0, 16).Select(i => hash[i].ToString("x2")));
         }
 
         private static IEnumerable<byte[]> ReadInput()
