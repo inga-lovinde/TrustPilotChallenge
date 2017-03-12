@@ -58,11 +58,10 @@
         // Produces all sequences of vectors with the target sum
         public ParallelQuery<Vector<byte>[]> GenerateSequences()
         {
-            var unorderedSequences = this.GenerateUnorderedSequences(this.Target, ImmutableStack.Create<Vector<byte>>(), this.Dictionary)
-                .AsParallel();
-            var allSequences = unorderedSequences.SelectMany(this.GeneratePermutations);
-
-            return allSequences;
+            return this.GenerateUnorderedSequences(this.Target, this.MaxVectorsCount, this.Dictionary)
+                .AsParallel()
+                .Select(Enumerable.ToArray)
+                .SelectMany(this.GeneratePermutations);
         }
 
         // We want words with more letters (and among these, words with more "rare" letters) to appear first, to reduce the searching time somewhat.
@@ -94,12 +93,12 @@
         }
 
         [Conditional("DEBUG")]
-        private void DebugState(ImmutableStack<Vector<byte>> partialSumStack, Vector<byte> currentVector)
+        private void DebugState(int allowedRemainingWords, Vector<byte> currentVector)
         {
             this.Iterations++;
             if (this.Iterations % 1000000 == 0)
             {
-                Console.WriteLine($"Iteration #{this.Iterations}: {string.Join(" ", partialSumStack.Push(currentVector).Reverse().Select(vector => this.VectorToString(vector)))}");
+                Console.WriteLine($"Iteration #{this.Iterations}: {allowedRemainingWords}, {this.VectorToString(currentVector)}");
             }
         }
 
@@ -107,12 +106,11 @@
         // In every sequence, next vector always goes after the previous one from dictionary.
         // E.g. if dictionary is [x, y, z], then only [x, y] sequence could be generated, and [y, x] will never be generated.
         // That way, the complexity of search goes down by a factor of MaxVectorsCount! (as if [x, y] does not add up to a required target, there is no point in checking [y, x])
-        private IEnumerable<Vector<byte>[]> GenerateUnorderedSequences(Vector<byte> remainder, ImmutableStack<Vector<byte>> partialSumStack, ImmutableStack<Vector<byte>> dictionaryStack)
+        private IEnumerable<ImmutableStack<Vector<byte>>> GenerateUnorderedSequences(Vector<byte> remainder, int allowedRemainingWords, ImmutableStack<Vector<byte>> dictionaryStack)
         {
-            var allowedRemainingWords = this.MaxVectorsCount - partialSumStack.Count();
             if (allowedRemainingWords > 1)
             {
-
+                var newAllowedRemainingWords = allowedRemainingWords - 1;
 #if !SUPPORT_LARGE_STRINGS
                 // e.g. if remainder norm is 7, 8 or 9, and allowedRemainingWords is 3,
                 // we need the largest remaining word to have a norm of at least 3
@@ -126,11 +124,11 @@
                     Vector<byte> currentVector;
                     var nextDictionaryTail = dictionaryTail.Pop(out currentVector);
 
-                    this.DebugState(partialSumStack, currentVector);
+                    this.DebugState(allowedRemainingWords, currentVector);
 
                     if (currentVector == remainder)
                     {
-                        yield return partialSumStack.Push(currentVector).Reverse().ToArray();
+                        yield return ImmutableStack.Create(currentVector);
                     }
 #if !SUPPORT_LARGE_STRINGS
                     else if (Vector.Dot(currentVector, this.TargetComplement) < requiredRemainder)
@@ -141,9 +139,9 @@
                     else if (Vector.LessThanOrEqualAll(currentVector, remainder))
                     {
                         var newRemainder = remainder - currentVector;
-                        foreach (var result in this.GenerateUnorderedSequences(newRemainder, partialSumStack.Push(currentVector), dictionaryTail))
+                        foreach (var result in this.GenerateUnorderedSequences(newRemainder, newAllowedRemainingWords, dictionaryTail))
                         {
-                            yield return result;
+                            yield return result.Push(currentVector);
                         }
                     }
 
@@ -158,12 +156,12 @@
                     Vector<byte> currentVector;
                     dictionaryTail = dictionaryTail.Pop(out currentVector);
 
-                    this.DebugState(partialSumStack, currentVector);
+                    this.DebugState(allowedRemainingWords, currentVector);
 
                     var newRemainder = remainder - currentVector;
                     if (newRemainder == Vector<byte>.Zero)
                     {
-                        yield return partialSumStack.Push(currentVector).Reverse().ToArray();
+                        yield return ImmutableStack.Create(currentVector);
                     }
                 }
             }

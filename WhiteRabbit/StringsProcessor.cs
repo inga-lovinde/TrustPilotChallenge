@@ -11,6 +11,7 @@
         public StringsProcessor(byte[] sourceString, int maxWordsCount, IEnumerable<byte[]> words)
         {
             var filteredSource = sourceString.Where(ch => ch != 32).ToArray();
+            this.NumberOfCharacters = filteredSource.Length;
             this.VectorsConverter = new VectorsConverter(filteredSource);
 
             // Dictionary of vectors to array of words represented by this vector
@@ -34,6 +35,8 @@
         private Dictionary<Vector<byte>, byte[][]> VectorsToWords { get; }
 
         private VectorsProcessor VectorsProcessor { get; }
+
+        private int NumberOfCharacters { get; }
 
         public ParallelQuery<byte[]> GeneratePhrases()
         {
@@ -64,7 +67,7 @@
 
         private byte[] WordsToPhrase(byte[][] words)
         {
-            var result = new byte[words.Length + words.Sum(word => word.Length) - 1];
+            var result = new byte[this.NumberOfCharacters + words.Length - 1];
 
             Buffer.BlockCopy(words[0], 0, result, 0, words[0].Length);
             var position = words[0].Length;
