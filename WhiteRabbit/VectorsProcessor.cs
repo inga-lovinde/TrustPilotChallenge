@@ -9,6 +9,9 @@
 
     internal class VectorsProcessor
     {
+        private const byte MaxComponentValue = 8;
+        private const int LeastCommonMultiple = 840;
+
         // Ensure that permutations are precomputed prior to main run, so that processing times will be correct
         static VectorsProcessor()
         {
@@ -17,35 +20,19 @@
 
         public VectorsProcessor(Vector<byte> target, int maxVectorsCount, IEnumerable<Vector<byte>> dictionary, Func<Vector<byte>, string> vectorToString)
         {
-#if SUPPORT_LARGE_STRINGS
-            if (Enumerable.Range(0, Vector<byte>.Count).Any(i => target[i] > 8))
+            if (Enumerable.Range(0, Vector<byte>.Count).Any(i => target[i] > MaxComponentValue))
             {
-                throw new ArgumentException("Every value should be at most 8 (at most 8 same characters allowed in the source string)", nameof(target));
+                throw new ArgumentException($"Every value should be at most {MaxComponentValue} (at most {MaxComponentValue} same characters allowed in the source string)", nameof(target));
             }
-#else
-            if (Enumerable.Range(0, Vector<byte>.Count).Any(i => target[i] > 4))
-            {
-                throw new ArgumentException("Every value should be at most 4 (at most 4 same characters allowed in the source string)", nameof(target));
-            }
-#endif
 
             this.Target = target;
 
-#if !SUPPORT_LARGE_STRINGS
-            this.TargetComplement = new Vector<byte>(Enumerable.Range(0, Vector<byte>.Count).Select(i => (byte)(this.Target[i] == 0 ? 0 : (byte)(12 / this.Target[i]))).ToArray());
-#endif
-
-            this.TargetNorm = Vector.Dot(target, Vector<byte>.One);
             this.MaxVectorsCount = maxVectorsCount;
             this.VectorToString = vectorToString;
-            this.Dictionary = ImmutableArray.Create(FilterVectors(dictionary, target, this.TargetComplement).ToArray());
+            this.Dictionary = ImmutableArray.Create(FilterVectors(dictionary, target).ToArray());
         }
 
         private Vector<byte> Target { get; }
-
-        private Vector<byte> TargetComplement { get; }
-
-        private byte TargetNorm { get; }
 
         private int MaxVectorsCount { get; }
 
@@ -58,7 +45,7 @@
         // Produces all sequences of vectors with the target sum
         public ParallelQuery<Vector<byte>[]> GenerateSequences()
         {
-            return this.GenerateUnorderedSequences(this.Target, this.MaxVectorsCount, 0)
+            return this.GenerateUnorderedSequences(this.Target, GetVectorNorm(this.Target, this.Target), this.MaxVectorsCount, 0)
                 .AsParallel()
                 .Select(Enumerable.ToArray)
                 .SelectMany(this.GeneratePermutations);
@@ -70,39 +57,23 @@
         // And total number of quintuplets becomes reasonable 1412M.
         // Also, it produces the intended results faster (as these are more likely to contain longer words - e.g. "poultry outwits ants" is more likely than "p o u l t r y o u t w i t s a n t s").
         // This method basically gives us the 1-norm of the vector in the space rescaled so that the target is [1, 1, ..., 1].
-#if SUPPORT_LARGE_STRINGS
-        private static int GetVectorWeight(Vector<byte> vector, Vector<byte> target)
+        private static int GetVectorNorm(Vector<byte> vector, Vector<byte> target)
         {
-            var weight = 0;
+            var norm = 0;
             for (var i = 0; target[i] != 0; i++)
             {
-                weight += (840 * vector[i]) / target[i]; // 840 = LCM(1, 2, .., 8), so that the result will be a whole number (unless Target[i] > 8)
+                norm += (LeastCommonMultiple * vector[i]) / target[i];
             }
 
-            return weight;
+            return norm;
         }
-#else
-        private static byte GetVectorWeight(Vector<byte> vector, Vector<byte> targetComplement)
-        {
-            return Vector.Dot(vector, targetComplement);
-        }
-#endif
 
-        private static VectorInfo[] FilterVectors(IEnumerable<Vector<byte>> vectors, Vector<byte> target, Vector<byte> targetComplement)
+        private static VectorInfo[] FilterVectors(IEnumerable<Vector<byte>> vectors, Vector<byte> target)
         {
             return vectors
                 .Where(vector => Vector.GreaterThanOrEqualAll(target, vector))
-#if SUPPORT_LARGE_STRINGS
-                .Select(vector => new { vector = vector, weight = GetVectorWeight(vector, target) })
-#else
-                .Select(vector => new { vector = vector, weight = GetVectorWeight(vector, targetComplement) })
-#endif
-                .OrderByDescending(tuple => tuple.weight)
-#if SUPPORT_LARGE_STRINGS
-                .Select(tuple => new VectorInfo(tuple.vector, 0)))
-#else
-                .Select(tuple => new VectorInfo(tuple.vector, tuple.weight))
-#endif
+                .Select(vector => new VectorInfo(vector, GetVectorNorm(vector, target)))
+                .OrderByDescending(vectorInfo => vectorInfo.Norm)
                 .ToArray();
         }
 
@@ -120,42 +91,36 @@
         // In every sequence, next vector always goes after the previous one from dictionary.
         // E.g. if dictionary is [x, y, z], then only [x, y] sequence could be generated, and [y, x] will never be generated.
         // That way, the complexity of search goes down by a factor of MaxVectorsCount! (as if [x, y] does not add up to a required target, there is no point in checking [y, x])
-        private IEnumerable<ImmutableStack<Vector<byte>>> GenerateUnorderedSequences(Vector<byte> remainder, int allowedRemainingWords, int currentDictionaryPosition)
+        private IEnumerable<ImmutableStack<Vector<byte>>> GenerateUnorderedSequences(Vector<byte> remainder, int remainderNorm, int allowedRemainingWords, int currentDictionaryPosition)
         {
-#if !SUPPORT_LARGE_STRINGS
-            var remainderNorm = Vector.Dot(remainder, this.TargetComplement);
-#endif
             if (allowedRemainingWords > 1)
             {
                 var newAllowedRemainingWords = allowedRemainingWords - 1;
-#if !SUPPORT_LARGE_STRINGS
                 // e.g. if remainder norm is 7, 8 or 9, and allowedRemainingWords is 3,
                 // we need the largest remaining word to have a norm of at least 3
-                var requiredRemainder = (remainderNorm + allowedRemainingWords - 1) / allowedRemainingWords;
-#endif
+                var requiredRemainderPerWord = (remainderNorm + allowedRemainingWords - 1) / allowedRemainingWords;
 
                 for (var i = FindFirstWithNormLessOrEqual(remainderNorm, currentDictionaryPosition); i < this.Dictionary.Length; i++)
                 {
-                    Vector<byte> currentVector = this.Dictionary[i].Vector;
+                    var currentVectorInfo = this.Dictionary[i];
 
-                    this.DebugState(allowedRemainingWords, currentVector);
+                    this.DebugState(allowedRemainingWords, currentVectorInfo.Vector);
 
-                    if (currentVector == remainder)
+                    if (currentVectorInfo.Vector == remainder)
                     {
-                        yield return ImmutableStack.Create(currentVector);
+                        yield return ImmutableStack.Create(currentVectorInfo.Vector);
                     }
-#if !SUPPORT_LARGE_STRINGS
-                    else if (this.Dictionary[i].Norm < requiredRemainder)
+                    else if (currentVectorInfo.Norm < requiredRemainderPerWord)
                     {
                         break;
                     }
-#endif
-                    else if (Vector.LessThanOrEqualAll(currentVector, remainder))
+                    else if (Vector.LessThanOrEqualAll(currentVectorInfo.Vector, remainder))
                     {
-                        var newRemainder = remainder - currentVector;
-                        foreach (var result in this.GenerateUnorderedSequences(newRemainder, newAllowedRemainingWords, i))
+                        var newRemainder = remainder - currentVectorInfo.Vector;
+                        var newRemainderNorm = remainderNorm - currentVectorInfo.Norm;
+                        foreach (var result in this.GenerateUnorderedSequences(newRemainder, newRemainderNorm, newAllowedRemainingWords, i))
                         {
-                            yield return result.Push(currentVector);
+                            yield return result.Push(currentVectorInfo.Vector);
                         }
                     }
                 }
@@ -164,26 +129,24 @@
             {
                 for (var i = FindFirstWithNormLessOrEqual(remainderNorm, currentDictionaryPosition); i < this.Dictionary.Length; i++)
                 {
-                    Vector<byte> currentVector = this.Dictionary[i].Vector;
+                    var currentVectorInfo = this.Dictionary[i];
 
-                    this.DebugState(allowedRemainingWords, currentVector);
+                    this.DebugState(allowedRemainingWords, currentVectorInfo.Vector);
 
-                    if (currentVector == remainder)
+                    if (currentVectorInfo.Vector == remainder)
                     {
-                        yield return ImmutableStack.Create(currentVector);
+                        yield return ImmutableStack.Create(currentVectorInfo.Vector);
                     }
-#if !SUPPORT_LARGE_STRINGS
-                    else if (this.Dictionary[i].Norm < remainderNorm)
+                    else if (currentVectorInfo.Norm < remainderNorm)
                     {
                         break;
                     }
-#endif
                 }
             }
         }
 
         // BCL BinarySearch would find any vector with required norm, not the first one; or would find nothing if there is no such vector
-        private int FindFirstWithNormLessOrEqual(byte expectedNorm, int offset)
+        private int FindFirstWithNormLessOrEqual(int expectedNorm, int offset)
         {
             var start = offset;
             var end = this.Dictionary.Length - 1;
@@ -227,7 +190,7 @@
 
         private struct VectorInfo
         {
-            public VectorInfo(Vector<byte> vector, byte norm)
+            public VectorInfo(Vector<byte> vector, int norm)
             {
                 this.Vector = vector;
                 this.Norm = norm;
@@ -235,7 +198,7 @@
 
             public Vector<byte> Vector { get; }
 
-            public byte Norm { get; }
+            public int Norm { get; }
         }
     }
 }
