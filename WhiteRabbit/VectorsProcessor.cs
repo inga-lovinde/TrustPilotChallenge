@@ -134,7 +134,7 @@
                 var requiredRemainder = (remainderNorm + allowedRemainingWords - 1) / allowedRemainingWords;
 #endif
 
-                for (var i = currentDictionaryPosition; i < this.Dictionary.Length; i++)
+                for (var i = FindFirstWithNormLessOrEqual(remainderNorm, currentDictionaryPosition); i < this.Dictionary.Length; i++)
                 {
                     Vector<byte> currentVector = this.Dictionary[i].Vector;
 
@@ -162,7 +162,7 @@
             }
             else
             {
-                for (var i = currentDictionaryPosition; i < this.Dictionary.Length; i++)
+                for (var i = FindFirstWithNormLessOrEqual(remainderNorm, currentDictionaryPosition); i < this.Dictionary.Length; i++)
                 {
                     Vector<byte> currentVector = this.Dictionary[i].Vector;
 
@@ -180,6 +180,41 @@
 #endif
                 }
             }
+        }
+
+        // BCL BinarySearch would find any vector with required norm, not the first one; or would find nothing if there is no such vector
+        private int FindFirstWithNormLessOrEqual(byte expectedNorm, int offset)
+        {
+            var start = offset;
+            var end = this.Dictionary.Length - 1;
+
+            if (this.Dictionary[start].Norm <= expectedNorm)
+            {
+                return start;
+            }
+
+            if (this.Dictionary[end].Norm > expectedNorm)
+            {
+                return this.Dictionary.Length;
+            }
+
+            // Norm for start is always greater than expected norm, or start is the required position; norm for end is always less than or equal to expected norm
+            // The loop always ends, because the difference always decreases; if start + 1 = end, then middle will be equal to start, and either end := middle = start or start := middle + 1 = end.
+            while (start < end)
+            {
+                var middle = (start + end) / 2;
+                var newNorm = this.Dictionary[middle].Norm;
+                if (this.Dictionary[middle].Norm <= expectedNorm)
+                {
+                    end = middle;
+                }
+                else
+                {
+                    start = middle + 1;
+                }
+            }
+
+            return start;
         }
 
         private IEnumerable<T[]> GeneratePermutations<T>(T[] original)
