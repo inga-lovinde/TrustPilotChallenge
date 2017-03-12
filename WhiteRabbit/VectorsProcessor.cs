@@ -7,7 +7,7 @@
     using System.Linq;
     using System.Numerics;
 
-    internal class VectorsProcessor
+    internal sealed class VectorsProcessor
     {
         private const byte MaxComponentValue = 8;
         private const int LeastCommonMultiple = 840;

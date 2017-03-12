@@ -9,7 +9,7 @@
     /// Converts strings to vectors containing chars count, based on a source string.
     /// E.g. for source string "abc", string "a" is converted to [1, 0, 0], while string "bcb" is converted to [0, 2, 1].
     /// </summary>
-    internal class VectorsConverter
+    internal sealed class VectorsConverter
     {
         public VectorsConverter(byte[] sourceString)
         {

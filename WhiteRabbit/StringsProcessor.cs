@@ -6,7 +6,7 @@
     using System.Linq;
     using System.Numerics;
 
-    internal class StringsProcessor
+    internal sealed class StringsProcessor
     {
         public StringsProcessor(byte[] sourceString, int maxWordsCount, IEnumerable<byte[]> words)
         {

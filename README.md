@@ -28,7 +28,7 @@ Multi-threaded performance with RyuJIT (.NET 4.6, 64-bit system) on quad-core Sa
 
 * If phrases of 6 words are allowed as well, then "more difficult" hash is solved in 30 seconds, "easiest" in 3 minutes, and "hard" in 6 minutes.
 
-* If phrases of 7 words are allowed as well, then "more difficult" hash is solved in 6 minutes.
+* If phrases of 7 words are allowed as well, then "more difficult" hash is solved in 3 minutes.
 
 Note that all measurements were done on a Release build; Debug build is significantly slower.
 

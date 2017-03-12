@@ -8,7 +8,7 @@
     /// <summary>
     /// Code taken from https://ericlippert.com/2013/04/22/producing-permutations-part-three/
     /// </summary>
-    internal class PermutationsGenerator
+    internal sealed class PermutationsGenerator
     {
         public static IEnumerable<Permutation> HamiltonianPermutations(int n)
         {
