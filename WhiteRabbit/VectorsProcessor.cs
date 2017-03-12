@@ -3,7 +3,6 @@
     using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
-    using System.Diagnostics;
     using System.Linq;
     using System.Numerics;
 
@@ -45,10 +44,10 @@
         // Produces all sequences of vectors with the target sum
         public ParallelQuery<Vector<byte>[]> GenerateSequences()
         {
-            return this.GenerateUnorderedSequences(this.Target, GetVectorNorm(this.Target, this.Target), this.MaxVectorsCount, 0)
+            return GenerateUnorderedSequences(this.Target, GetVectorNorm(this.Target, this.Target), this.MaxVectorsCount, this.Dictionary, 0)
                 .AsParallel()
                 .Select(Enumerable.ToArray)
-                .SelectMany(this.GeneratePermutations);
+                .SelectMany(GeneratePermutations);
         }
 
         // We want words with more letters (and among these, words with more "rare" letters) to appear first, to reduce the searching time somewhat.
@@ -77,21 +76,11 @@
                 .ToArray();
         }
 
-        [Conditional("DEBUG")]
-        private void DebugState(int allowedRemainingWords, Vector<byte> currentVector)
-        {
-            this.Iterations++;
-            if (this.Iterations % 1000000 == 0)
-            {
-                Console.WriteLine($"Iteration #{this.Iterations}: {allowedRemainingWords}, {this.VectorToString(currentVector)}");
-            }
-        }
-
         // This method takes most of the time, so everything related to it must be optimized.
         // In every sequence, next vector always goes after the previous one from dictionary.
         // E.g. if dictionary is [x, y, z], then only [x, y] sequence could be generated, and [y, x] will never be generated.
         // That way, the complexity of search goes down by a factor of MaxVectorsCount! (as if [x, y] does not add up to a required target, there is no point in checking [y, x])
-        private IEnumerable<ImmutableStack<Vector<byte>>> GenerateUnorderedSequences(Vector<byte> remainder, int remainderNorm, int allowedRemainingWords, int currentDictionaryPosition)
+        private static IEnumerable<ImmutableStack<Vector<byte>>> GenerateUnorderedSequences(Vector<byte> remainder, int remainderNorm, int allowedRemainingWords, ImmutableArray<VectorInfo> dictionary, int currentDictionaryPosition)
         {
             if (allowedRemainingWords > 1)
             {
@@ -100,12 +89,9 @@
                 // we need the largest remaining word to have a norm of at least 3
                 var requiredRemainderPerWord = (remainderNorm + allowedRemainingWords - 1) / allowedRemainingWords;
 
-                for (var i = FindFirstWithNormLessOrEqual(remainderNorm, currentDictionaryPosition); i < this.Dictionary.Length; i++)
+                for (var i = FindFirstWithNormLessOrEqual(remainderNorm, dictionary, currentDictionaryPosition); i < dictionary.Length; i++)
                 {
-                    var currentVectorInfo = this.Dictionary[i];
-
-                    this.DebugState(allowedRemainingWords, currentVectorInfo.Vector);
-
+                    var currentVectorInfo = dictionary[i];
                     if (currentVectorInfo.Vector == remainder)
                     {
                         yield return ImmutableStack.Create(currentVectorInfo.Vector);
@@ -118,7 +104,7 @@
                     {
                         var newRemainder = remainder - currentVectorInfo.Vector;
                         var newRemainderNorm = remainderNorm - currentVectorInfo.Norm;
-                        foreach (var result in this.GenerateUnorderedSequences(newRemainder, newRemainderNorm, newAllowedRemainingWords, i))
+                        foreach (var result in GenerateUnorderedSequences(newRemainder, newRemainderNorm, newAllowedRemainingWords, dictionary, i))
                         {
                             yield return result.Push(currentVectorInfo.Vector);
                         }
@@ -127,12 +113,9 @@
             }
             else
             {
-                for (var i = FindFirstWithNormLessOrEqual(remainderNorm, currentDictionaryPosition); i < this.Dictionary.Length; i++)
+                for (var i = FindFirstWithNormLessOrEqual(remainderNorm, dictionary, currentDictionaryPosition); i < dictionary.Length; i++)
                 {
-                    var currentVectorInfo = this.Dictionary[i];
-
-                    this.DebugState(allowedRemainingWords, currentVectorInfo.Vector);
-
+                    var currentVectorInfo = dictionary[i];
                     if (currentVectorInfo.Vector == remainder)
                     {
                         yield return ImmutableStack.Create(currentVectorInfo.Vector);
@@ -146,19 +129,19 @@
         }
 
         // BCL BinarySearch would find any vector with required norm, not the first one; or would find nothing if there is no such vector
-        private int FindFirstWithNormLessOrEqual(int expectedNorm, int offset)
+        private static int FindFirstWithNormLessOrEqual(int expectedNorm, ImmutableArray<VectorInfo> dictionary, int offset)
         {
             var start = offset;
-            var end = this.Dictionary.Length - 1;
+            var end = dictionary.Length - 1;
 
-            if (this.Dictionary[start].Norm <= expectedNorm)
+            if (dictionary[start].Norm <= expectedNorm)
             {
                 return start;
             }
 
-            if (this.Dictionary[end].Norm > expectedNorm)
+            if (dictionary[end].Norm > expectedNorm)
             {
-                return this.Dictionary.Length;
+                return dictionary.Length;
             }
 
             // Norm for start is always greater than expected norm, or start is the required position; norm for end is always less than or equal to expected norm
@@ -166,8 +149,8 @@
             while (start < end)
             {
                 var middle = (start + end) / 2;
-                var newNorm = this.Dictionary[middle].Norm;
-                if (this.Dictionary[middle].Norm <= expectedNorm)
+                var newNorm = dictionary[middle].Norm;
+                if (dictionary[middle].Norm <= expectedNorm)
                 {
                     end = middle;
                 }
@@ -180,7 +163,7 @@
             return start;
         }
 
-        private IEnumerable<T[]> GeneratePermutations<T>(T[] original)
+        private static IEnumerable<T[]> GeneratePermutations<T>(T[] original)
         {
             foreach (var permutation in PrecomputedPermutationsGenerator.HamiltonianPermutations(original.Length))
             {

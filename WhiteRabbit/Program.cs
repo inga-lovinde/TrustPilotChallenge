@@ -39,6 +39,7 @@
             Console.WriteLine($"Initialization complete; time from start: {stopwatch.Elapsed}");
 
 #if DEBUG
+            // it makes the program slow (as all anagrams are generated twice), but this code is only run in a debug mode
             var totalAnagramsCount = processor.GeneratePhrases().Count();
             Console.WriteLine($"Total anagrams count: {totalAnagramsCount}; time from start: {stopwatch.Elapsed}");
 #endif

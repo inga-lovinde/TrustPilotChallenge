@@ -46,14 +46,14 @@
             // converting sequences of vectors to the sequences of words...
             var anagramsWords = sums
                 .Select(sum => ImmutableStack.Create(sum.Select(vector => this.VectorsToWords[vector]).ToArray()))
-                .SelectMany(this.Flatten)
+                .SelectMany(Flatten)
                 .Select(stack => stack.ToArray());
 
             return anagramsWords.Select(WordsToPhrase);
         }
 
         // Converts e.g. pair of variants [[a, b, c], [d, e]] into all possible pairs: [[a, d], [a, e], [b, d], [b, e], [c, d], [c, e]]
-        private IEnumerable<ImmutableStack<T>> Flatten<T>(ImmutableStack<T[]> phrase)
+        private static IEnumerable<ImmutableStack<T>> Flatten<T>(ImmutableStack<T[]> phrase)
         {
             if (phrase.IsEmpty)
             {
@@ -62,7 +62,7 @@
 
             T[] wordVariants;
             var newStack = phrase.Pop(out wordVariants);
-            return this.Flatten(newStack).SelectMany(remainder => wordVariants.Select(word => remainder.Push(word)));
+            return Flatten(newStack).SelectMany(remainder => wordVariants.Select(word => remainder.Push(word)));
         }
 
         private byte[] WordsToPhrase(byte[][] words)
