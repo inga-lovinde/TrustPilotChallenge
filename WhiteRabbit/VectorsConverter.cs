@@ -1,5 +1,6 @@
 ﻿namespace WhiteRabbit
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Numerics;
@@ -14,6 +15,12 @@
         {
             var rawNumberOfOccurrences = sourceString.GroupBy(ch => ch).ToDictionary(group => group.Key, group => group.Count());
             this.IntToChar = rawNumberOfOccurrences.OrderBy(kvp => kvp.Key).Select(kvp => kvp.Key).ToArray();
+
+            if (this.IntToChar.Length > Vector<byte>.Count)
+            {
+                throw new ArgumentException($"String should not contain more than {Vector<byte>.Count} different characters", nameof(sourceString));
+            }
+
             this.CharToInt = Enumerable.Range(0, this.IntToChar.Length).ToDictionary(i => this.IntToChar[i], i => i);
         }
 
@@ -28,7 +35,7 @@
                 return null;
             }
 
-            var arr = new byte[16];
+            var arr = new byte[Vector<byte>.Count];
             foreach (var ch in word)
             {
                 arr[this.CharToInt[ch]]++;
