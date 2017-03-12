@@ -36,16 +36,21 @@
 
             var processor = new StringsProcessor(Encoding.ASCII.GetBytes(SourcePhrase), MaxWordsInPhrase, ReadInput());
 
-            Console.WriteLine($"Initialization complete; time spent: {stopwatch.Elapsed}");
+            Console.WriteLine($"Initialization complete; time from start: {stopwatch.Elapsed}");
+
+#if DEBUG
+            var totalAnagramsCount = processor.GeneratePhrases().Count();
+            Console.WriteLine($"Total anagrams count: {totalAnagramsCount}; time from start: {stopwatch.Elapsed}");
+#endif
 
             processor.GeneratePhrases()
                 .Select(phraseBytes => new { phraseBytes, hashVector = ComputeHashVector(phraseBytes) })
                 .Where(tuple => expectedHashesAsVectors.Contains(tuple.hashVector))
                 .Select(tuple => new { phrase = Encoding.ASCII.GetString(tuple.phraseBytes), hash = VectorToHexadecimalString(tuple.hashVector) })
-                .ForAll(phraseInfo => Console.WriteLine($"Found phrase for {phraseInfo.hash}: {phraseInfo.phrase} (spent {stopwatch.Elapsed})"));
+                .ForAll(phraseInfo => Console.WriteLine($"Found phrase for {phraseInfo.hash}: {phraseInfo.phrase}; time from start is {stopwatch.Elapsed}"));
 
             stopwatch.Stop();
-            Console.WriteLine($"Total time spent: {stopwatch.Elapsed}");
+            Console.WriteLine($"Done; time from start: {stopwatch.Elapsed}");
         }
 
         // Code taken from http://stackoverflow.com/a/321404/831314
