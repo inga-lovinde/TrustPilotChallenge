@@ -38,7 +38,7 @@
             this.TargetNorm = Vector.Dot(target, Vector<byte>.One);
             this.MaxVectorsCount = maxVectorsCount;
             this.VectorToString = vectorToString;
-            this.Dictionary = ImmutableStack.Create(FilterVectors(dictionary, target, this.TargetComplement).ToArray());
+            this.Dictionary = ImmutableArray.Create(FilterVectors(dictionary, target, this.TargetComplement).ToArray());
         }
 
         private Vector<byte> Target { get; }
@@ -49,7 +49,7 @@
 
         private int MaxVectorsCount { get; }
 
-        private ImmutableStack<Vector<byte>> Dictionary { get; }
+        private ImmutableArray<VectorInfo> Dictionary { get; }
 
         private Func<Vector<byte>, string> VectorToString { get; }
 
@@ -58,7 +58,7 @@
         // Produces all sequences of vectors with the target sum
         public ParallelQuery<Vector<byte>[]> GenerateSequences()
         {
-            return this.GenerateUnorderedSequences(this.Target, this.MaxVectorsCount, this.Dictionary)
+            return this.GenerateUnorderedSequences(this.Target, this.MaxVectorsCount, 0)
                 .AsParallel()
                 .Select(Enumerable.ToArray)
                 .SelectMany(this.GeneratePermutations);
@@ -70,9 +70,9 @@
         // And total number of quintuplets becomes reasonable 1412M.
         // Also, it produces the intended results faster (as these are more likely to contain longer words - e.g. "poultry outwits ants" is more likely than "p o u l t r y o u t w i t s a n t s").
         // This method basically gives us the 1-norm of the vector in the space rescaled so that the target is [1, 1, ..., 1].
-        private static int GetVectorWeight(Vector<byte> vector, Vector<byte> target, Vector<byte> targetComplement)
-        {
 #if SUPPORT_LARGE_STRINGS
+        private static int GetVectorWeight(Vector<byte> vector, Vector<byte> target)
+        {
             var weight = 0;
             for (var i = 0; target[i] != 0; i++)
             {
@@ -80,16 +80,30 @@
             }
 
             return weight;
-#else
-            return Vector.Dot(vector, targetComplement);
-#endif
         }
+#else
+        private static byte GetVectorWeight(Vector<byte> vector, Vector<byte> targetComplement)
+        {
+            return Vector.Dot(vector, targetComplement);
+        }
+#endif
 
-        private static IEnumerable<Vector<byte>> FilterVectors(IEnumerable<Vector<byte>> vectors, Vector<byte> target, Vector<byte> targetComplement)
+        private static VectorInfo[] FilterVectors(IEnumerable<Vector<byte>> vectors, Vector<byte> target, Vector<byte> targetComplement)
         {
             return vectors
                 .Where(vector => Vector.GreaterThanOrEqualAll(target, vector))
-                .OrderBy(vector => GetVectorWeight(vector, target, targetComplement));
+#if SUPPORT_LARGE_STRINGS
+                .Select(vector => new { vector = vector, weight = GetVectorWeight(vector, target) })
+#else
+                .Select(vector => new { vector = vector, weight = GetVectorWeight(vector, targetComplement) })
+#endif
+                .OrderByDescending(tuple => tuple.weight)
+#if SUPPORT_LARGE_STRINGS
+                .Select(tuple => new VectorInfo(tuple.vector, 0)))
+#else
+                .Select(tuple => new VectorInfo(tuple.vector, tuple.weight))
+#endif
+                .ToArray();
         }
 
         [Conditional("DEBUG")]
@@ -106,23 +120,23 @@
         // In every sequence, next vector always goes after the previous one from dictionary.
         // E.g. if dictionary is [x, y, z], then only [x, y] sequence could be generated, and [y, x] will never be generated.
         // That way, the complexity of search goes down by a factor of MaxVectorsCount! (as if [x, y] does not add up to a required target, there is no point in checking [y, x])
-        private IEnumerable<ImmutableStack<Vector<byte>>> GenerateUnorderedSequences(Vector<byte> remainder, int allowedRemainingWords, ImmutableStack<Vector<byte>> dictionaryStack)
+        private IEnumerable<ImmutableStack<Vector<byte>>> GenerateUnorderedSequences(Vector<byte> remainder, int allowedRemainingWords, int currentDictionaryPosition)
         {
+#if !SUPPORT_LARGE_STRINGS
+            var remainderNorm = Vector.Dot(remainder, this.TargetComplement);
+#endif
             if (allowedRemainingWords > 1)
             {
                 var newAllowedRemainingWords = allowedRemainingWords - 1;
 #if !SUPPORT_LARGE_STRINGS
                 // e.g. if remainder norm is 7, 8 or 9, and allowedRemainingWords is 3,
                 // we need the largest remaining word to have a norm of at least 3
-                var remainderNorm = Vector.Dot(remainder, this.TargetComplement);
                 var requiredRemainder = (remainderNorm + allowedRemainingWords - 1) / allowedRemainingWords;
 #endif
 
-                var dictionaryTail = dictionaryStack;
-                while (!dictionaryTail.IsEmpty)
+                for (var i = currentDictionaryPosition; i < this.Dictionary.Length; i++)
                 {
-                    Vector<byte> currentVector;
-                    var nextDictionaryTail = dictionaryTail.Pop(out currentVector);
+                    Vector<byte> currentVector = this.Dictionary[i].Vector;
 
                     this.DebugState(allowedRemainingWords, currentVector);
 
@@ -131,7 +145,7 @@
                         yield return ImmutableStack.Create(currentVector);
                     }
 #if !SUPPORT_LARGE_STRINGS
-                    else if (Vector.Dot(currentVector, this.TargetComplement) < requiredRemainder)
+                    else if (this.Dictionary[i].Norm < requiredRemainder)
                     {
                         break;
                     }
@@ -139,30 +153,31 @@
                     else if (Vector.LessThanOrEqualAll(currentVector, remainder))
                     {
                         var newRemainder = remainder - currentVector;
-                        foreach (var result in this.GenerateUnorderedSequences(newRemainder, newAllowedRemainingWords, dictionaryTail))
+                        foreach (var result in this.GenerateUnorderedSequences(newRemainder, newAllowedRemainingWords, i))
                         {
                             yield return result.Push(currentVector);
                         }
                     }
-
-                    dictionaryTail = nextDictionaryTail;
                 }
             }
             else
             {
-                var dictionaryTail = dictionaryStack;
-                while (!dictionaryTail.IsEmpty)
+                for (var i = currentDictionaryPosition; i < this.Dictionary.Length; i++)
                 {
-                    Vector<byte> currentVector;
-                    dictionaryTail = dictionaryTail.Pop(out currentVector);
+                    Vector<byte> currentVector = this.Dictionary[i].Vector;
 
                     this.DebugState(allowedRemainingWords, currentVector);
 
-                    var newRemainder = remainder - currentVector;
-                    if (newRemainder == Vector<byte>.Zero)
+                    if (currentVector == remainder)
                     {
                         yield return ImmutableStack.Create(currentVector);
                     }
+#if !SUPPORT_LARGE_STRINGS
+                    else if (this.Dictionary[i].Norm < remainderNorm)
+                    {
+                        break;
+                    }
+#endif
                 }
             }
         }
@@ -173,6 +188,19 @@
             {
                 yield return permutation.Select(i => original[i]).ToArray();
             }
+        }
+
+        private struct VectorInfo
+        {
+            public VectorInfo(Vector<byte> vector, byte norm)
+            {
+                this.Vector = vector;
+                this.Norm = norm;
+            }
+
+            public Vector<byte> Vector { get; }
+
+            public byte Norm { get; }
         }
     }
 }
