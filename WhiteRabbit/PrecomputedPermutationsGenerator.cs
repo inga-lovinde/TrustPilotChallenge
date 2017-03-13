@@ -15,8 +15,6 @@
             PermutationsGenerator.HamiltonianPermutations(5).ToArray(),
             PermutationsGenerator.HamiltonianPermutations(6).ToArray(),
             PermutationsGenerator.HamiltonianPermutations(7).ToArray(),
-            PermutationsGenerator.HamiltonianPermutations(8).ToArray(),
-            PermutationsGenerator.HamiltonianPermutations(9).ToArray(),
         };
 
         public static IEnumerable<PermutationsGenerator.Permutation> HamiltonianPermutations(int n)

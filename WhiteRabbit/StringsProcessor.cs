@@ -16,18 +16,16 @@
 
             // Dictionary of vectors to array of words represented by this vector
             this.VectorsToWords = words
-                .Distinct(new ByteArrayEqualityComparer())
                 .Select(word => new { word, vector = this.VectorsConverter.GetVector(word) })
                 .Where(tuple => tuple.vector != null)
                 .Select(tuple => new { tuple.word, vector = tuple.vector.Value })
                 .GroupBy(tuple => tuple.vector)
-                .ToDictionary(group => group.Key, group => group.Select(tuple => tuple.word).ToArray());
+                .ToDictionary(group => group.Key, group => group.Select(tuple => tuple.word).Distinct(new ByteArrayEqualityComparer()).ToArray());
 
             this.VectorsProcessor = new VectorsProcessor(
                 this.VectorsConverter.GetVector(filteredSource).Value,
                 maxWordsCount,
-                this.VectorsToWords.Keys,
-                this.VectorsConverter.GetString);
+                this.VectorsToWords.Keys);
         }
 
         private VectorsConverter VectorsConverter { get; }
@@ -44,12 +42,10 @@
             var sums = this.VectorsProcessor.GenerateSequences();
 
             // converting sequences of vectors to the sequences of words...
-            var anagramsWords = sums
-                .Select(sum => ImmutableStack.Create(sum.Select(vector => this.VectorsToWords[vector]).ToArray()))
-                .SelectMany(Flatten)
-                .Select(stack => stack.ToArray());
-
-            return anagramsWords.Select(WordsToPhrase);
+            return sums
+                .Select(ConvertVectorsToWords)
+                .SelectMany(FlattenWords)
+                .Select(ConvertWordsToPhrase);
         }
 
         // Converts e.g. pair of variants [[a, b, c], [d, e]] into all possible pairs: [[a, d], [a, e], [b, d], [b, e], [c, d], [c, e]]
@@ -65,19 +61,41 @@
             return Flatten(newStack).SelectMany(remainder => wordVariants.Select(word => remainder.Push(word)));
         }
 
-        private byte[] WordsToPhrase(byte[][] words)
+        private Tuple<int, ImmutableStack<byte[][]>> ConvertVectorsToWords(Vector<byte>[] vectors)
         {
-            var result = new byte[this.NumberOfCharacters + words.Length - 1];
+            var length = vectors.Length;
+            var words = new byte[length][][];
+            for (var i = 0; i < length; i++)
+            {
+                words[i] = this.VectorsToWords[vectors[i]];
+            }
 
-            Buffer.BlockCopy(words[0], 0, result, 0, words[0].Length);
-            var position = words[0].Length;
-            for (var i = 1; i < words.Length; i++)
+            return Tuple.Create(length, ImmutableStack.Create(words));
+        }
+
+        private IEnumerable<Tuple<int, ImmutableStack<byte[]>>> FlattenWords(Tuple<int, ImmutableStack<byte[][]>> wordVariants)
+        {
+            var item1 = wordVariants.Item1;
+            return Flatten(wordVariants.Item2).Select(words => Tuple.Create(item1, words));
+        }
+
+        private byte[] ConvertWordsToPhrase(Tuple<int, ImmutableStack<byte[]>> words)
+        {
+            var wordCount = words.Item1;
+            var result = new byte[this.NumberOfCharacters + wordCount - 1];
+
+            byte[] currentWord;
+            var currentStack = words.Item2.Pop(out currentWord);
+            Buffer.BlockCopy(currentWord, 0, result, 0, currentWord.Length);
+            var position = currentWord.Length;
+            while (!currentStack.IsEmpty)
             {
                 result[position] = 32;
                 position++;
 
-                Buffer.BlockCopy(words[i], 0, result, position, words[i].Length);
-                position += words[i].Length;
+                currentStack = currentStack.Pop(out currentWord);
+                Buffer.BlockCopy(currentWord, 0, result, position, currentWord.Length);
+                position += currentWord.Length;
             }
 
             return result;

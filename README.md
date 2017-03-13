@@ -13,7 +13,7 @@ WhiteRabbit.exe < wordlist
 Performance
 ===========
 
-Memory usage is minimal (for that kind of task), around 10-30MB.
+Memory usage is minimal (for that kind of task), around 10-20MB.
 
 It is also somewhat optimized for likely intended phrases, as anagrams consisting of longer words are generated first.
 That's why the given hashes are solved much sooner than it takes to check all anagrams.
@@ -22,13 +22,13 @@ Anagrams generation is not parallelized, as even single-threaded performance for
 
 Multi-threaded performance with RyuJIT (.NET 4.6, 64-bit system) on quad-core Sandy Bridge @2.8GHz is as follows:
 
-* If only phrases of at most 4 words are allowed, then it takes less than 5.5 seconds to find and check all 7433016 anagrams; all hashes are solved in first 0.7 seconds.
+* If only phrases of at most 4 words are allowed, then it takes less than 4.5 seconds to find and check all 7433016 anagrams; all hashes are solved in first 0.6 seconds.
 
-* If phrases of 5 words are allowed as well, then it takes around 17 minutes to find and check all anagrams; all hashes are solved in first 25 seconds. Most of time is spent on MD5 computations for correct anagrams, so there is not a lot to optimize further.
+* If phrases of 5 words are allowed as well, then it takes around 13 minutes to find and check all 1348876896 anagrams; all hashes are solved in first 20 seconds. Most of time is spent on MD5 computations for correct anagrams, so there is not a lot to optimize further.
 
-* If phrases of 6 words are allowed as well, then "more difficult" hash is solved in 30 seconds, "easiest" in 3 minutes, and "hard" in 6 minutes.
+* If phrases of 6 words are allowed as well, then "more difficult" hash is solved in 20 seconds, "easiest" in 2.5 minutes, and "hard" in 6 minutes.
 
-* If phrases of 7 words are allowed as well, then "more difficult" hash is solved in 3 minutes.
+* If phrases of 7 words are allowed as well, then "more difficult" hash is solved in 2.5 minutes.
 
 Note that all measurements were done on a Release build; Debug build is significantly slower.
 

@@ -43,10 +43,5 @@
 
             return new Vector<byte>(arr);
         }
-
-        public string GetString(Vector<byte> vector)
-        {
-            return new string(Enumerable.Range(0, this.IntToChar.Length).SelectMany(i => Enumerable.Repeat((char)this.IntToChar[i], vector[i])).ToArray());
-        }
     }
 }

@@ -17,7 +17,7 @@
             PrecomputedPermutationsGenerator.HamiltonianPermutations(0);
         }
 
-        public VectorsProcessor(Vector<byte> target, int maxVectorsCount, IEnumerable<Vector<byte>> dictionary, Func<Vector<byte>, string> vectorToString)
+        public VectorsProcessor(Vector<byte> target, int maxVectorsCount, IEnumerable<Vector<byte>> dictionary)
         {
             if (Enumerable.Range(0, Vector<byte>.Count).Any(i => target[i] > MaxComponentValue))
             {
@@ -27,7 +27,6 @@
             this.Target = target;
 
             this.MaxVectorsCount = maxVectorsCount;
-            this.VectorToString = vectorToString;
             this.Dictionary = ImmutableArray.Create(FilterVectors(dictionary, target).ToArray());
         }
 
@@ -36,10 +35,6 @@
         private int MaxVectorsCount { get; }
 
         private ImmutableArray<VectorInfo> Dictionary { get; }
-
-        private Func<Vector<byte>, string> VectorToString { get; }
-
-        private long Iterations { get; set; } = 0;
 
         // Produces all sequences of vectors with the target sum
         public ParallelQuery<Vector<byte>[]> GenerateSequences()
@@ -165,9 +160,16 @@
 
         private static IEnumerable<T[]> GeneratePermutations<T>(T[] original)
         {
-            foreach (var permutation in PrecomputedPermutationsGenerator.HamiltonianPermutations(original.Length))
+            var length = original.Length;
+            foreach (var permutation in PrecomputedPermutationsGenerator.HamiltonianPermutations(length))
             {
-                yield return permutation.Select(i => original[i]).ToArray();
+                var result = new T[length];
+                for (var i = 0; i < length; i++)
+                {
+                    result[i] = original[permutation[i]];
+                }
+
+                yield return result;
             }
         }
 
