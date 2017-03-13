@@ -13,9 +13,9 @@
     /// </summary>
     public static class Program
     {
-        const string SourcePhrase = "poultry outwits ants";
+        private const string SourcePhrase = "poultry outwits ants";
 
-        const int MaxWordsInPhrase = 4;
+        private const int MaxWordsInPhrase = 4;
 
         /// <summary>
         /// Main entry point

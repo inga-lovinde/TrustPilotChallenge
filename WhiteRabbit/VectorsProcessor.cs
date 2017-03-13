@@ -80,7 +80,8 @@
             if (allowedRemainingWords > 1)
             {
                 var newAllowedRemainingWords = allowedRemainingWords - 1;
-                // e.g. if remainder norm is 7, 8 or 9, and allowedRemainingWords is 3,
+
+                // E.g. if remainder norm is 7, 8 or 9, and allowedRemainingWords is 3,
                 // we need the largest remaining word to have a norm of at least 3
                 var requiredRemainderPerWord = (remainderNorm + allowedRemainingWords - 1) / allowedRemainingWords;
 

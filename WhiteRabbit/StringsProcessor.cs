@@ -43,9 +43,9 @@
 
             // converting sequences of vectors to the sequences of words...
             return sums
-                .Select(ConvertVectorsToWords)
+                .Select(this.ConvertVectorsToWords)
                 .SelectMany(FlattenWords)
-                .Select(ConvertWordsToPhrase);
+                .Select(this.ConvertWordsToPhrase);
         }
 
         // Converts e.g. pair of variants [[a, b, c], [d, e]] into all possible pairs: [[a, d], [a, e], [b, d], [b, e], [c, d], [c, e]]
@@ -61,6 +61,12 @@
             return Flatten(newStack).SelectMany(remainder => wordVariants.Select(word => remainder.Push(word)));
         }
 
+        private static IEnumerable<Tuple<int, ImmutableStack<byte[]>>> FlattenWords(Tuple<int, ImmutableStack<byte[][]>> wordVariants)
+        {
+            var item1 = wordVariants.Item1;
+            return Flatten(wordVariants.Item2).Select(words => Tuple.Create(item1, words));
+        }
+
         private Tuple<int, ImmutableStack<byte[][]>> ConvertVectorsToWords(Vector<byte>[] vectors)
         {
             var length = vectors.Length;
@@ -71,12 +77,6 @@
             }
 
             return Tuple.Create(length, ImmutableStack.Create(words));
-        }
-
-        private IEnumerable<Tuple<int, ImmutableStack<byte[]>>> FlattenWords(Tuple<int, ImmutableStack<byte[][]>> wordVariants)
-        {
-            var item1 = wordVariants.Item1;
-            return Flatten(wordVariants.Item2).Select(words => Tuple.Create(item1, words));
         }
 
         private byte[] ConvertWordsToPhrase(Tuple<int, ImmutableStack<byte[]>> words)
