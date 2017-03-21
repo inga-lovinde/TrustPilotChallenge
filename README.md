@@ -13,7 +13,7 @@ WhiteRabbit.exe < wordlist
 Performance
 ===========
 
-Memory usage is minimal (for that kind of task), around 10-20MB.
+Memory usage is minimal (for that kind of task), less than 10MB.
 
 It is also somewhat optimized for likely intended phrases, as anagrams consisting of longer words are generated first.
 That's why the given hashes are solved much sooner than it takes to check all anagrams.
@@ -22,13 +22,13 @@ Anagrams generation is not parallelized, as even single-threaded performance for
 
 Multi-threaded performance with RyuJIT (.NET 4.6, 64-bit system) on quad-core Sandy Bridge @2.8GHz is as follows:
 
-* If only phrases of at most 4 words are allowed, then it takes less than 4.5 seconds to find and check all 7433016 anagrams; all hashes are solved in first 0.6 seconds.
+* If only phrases of at most 4 words are allowed, then it takes around 4 seconds to find and check all 7433016 anagrams; all hashes are solved in first 0.5 seconds.
 
-* If phrases of 5 words are allowed as well, then it takes around 13 minutes to find and check all 1348876896 anagrams; all hashes are solved in first 20 seconds. Most of time is spent on MD5 computations for correct anagrams, so there is not a lot to optimize further.
+* If phrases of 5 words are allowed as well, then it takes around 12 minutes to find and check all 1348876896 anagrams; all hashes are solved in first 18 seconds. Most of time is spent on MD5 computations for correct anagrams, so there is not a lot to optimize further.
 
-* If phrases of 6 words are allowed as well, then "more difficult" hash is solved in 20 seconds, "easiest" in 2.5 minutes, and "hard" in 6 minutes.
+* If phrases of 6 words are allowed as well, then "more difficult" hash is solved in 19 seconds, "easiest" in 2 minutes, and "hard" in less than 5 minutes.
 
-* If phrases of 7 words are allowed as well, then "more difficult" hash is solved in 2.5 minutes.
+* If phrases of 7 words are allowed as well, then "more difficult" hash is solved in ~2 minutes.
 
 Note that all measurements were done on a Release build; Debug build is significantly slower.
 
@@ -38,6 +38,7 @@ Implementation notes
 ====================
 
 1. We need to limit the number of words in an anagram by some reasonable number, as there are single-letter words in dictionary, and computing MD5 hashes for all anagrams consisting of single-letter words is computationally infeasible and could not have been intended by the challenge authors.
+In particular, as there are single-letter words for every letter in the original phrase, there are obvious anagrams consisting exclusively of the single-letter words; and the number of such anagrams equals to the number of all letter permutations of the original phrase, which is too high.
 
 2. Every word or phrase could be thought of as a vector in 26-dimensional space, with every component equal to the number of corresponding letters in the original word.
 That way, vector corresponding to some phrase equals to the sum of vectors of its words.
@@ -75,4 +76,8 @@ As we have ordered the words by weight, when we're looping over the dictionary, 
 9. Another possible optimization with such an ordering is employing binary search.
 There is no need in processing all the words that are too large to be useful at this moment; we can start with a first word with a weight not exceeding distance between current partial sum and the target.
 
-10. And then, all that remains are implementation optimizations: precomputing weights, optimizing memory usage and loops, etc.
+10. And then, all that remains are implementation optimizations: precomputing weights, optimizing memory usage and loops, using byte arrays instead of strings, etc.
+
+11. Filtering the original dictionary (e.g. throwing away all single-letter words) does not really improve the performance, thanks to the optimizations mentioned in notes 7-9.
+This solution finds all anagrams, including those with single-letter words.
+

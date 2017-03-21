@@ -17,7 +17,7 @@
             PrecomputedPermutationsGenerator.HamiltonianPermutations(0);
         }
 
-        public VectorsProcessor(Vector<byte> target, int maxVectorsCount, IEnumerable<Vector<byte>> dictionary)
+        public VectorsProcessor(Vector<byte> target, int maxVectorsCount, Vector<byte>[] dictionary)
         {
             if (Enumerable.Range(0, Vector<byte>.Count).Any(i => target[i] > MaxComponentValue))
             {
@@ -37,7 +37,7 @@
         private ImmutableArray<VectorInfo> Dictionary { get; }
 
         // Produces all sequences of vectors with the target sum
-        public ParallelQuery<Vector<byte>[]> GenerateSequences()
+        public ParallelQuery<int[]> GenerateSequences()
         {
             return GenerateUnorderedSequences(this.Target, GetVectorNorm(this.Target, this.Target), this.MaxVectorsCount, this.Dictionary, 0)
                 .AsParallel()
@@ -62,11 +62,11 @@
             return norm;
         }
 
-        private static VectorInfo[] FilterVectors(IEnumerable<Vector<byte>> vectors, Vector<byte> target)
+        private static VectorInfo[] FilterVectors(Vector<byte>[] vectors, Vector<byte> target)
         {
-            return vectors
-                .Where(vector => Vector.GreaterThanOrEqualAll(target, vector))
-                .Select(vector => new VectorInfo(vector, GetVectorNorm(vector, target)))
+            return Enumerable.Range(0, vectors.Length)
+                .Where(i => Vector.GreaterThanOrEqualAll(target, vectors[i]))
+                .Select(i => new VectorInfo(vectors[i], GetVectorNorm(vectors[i], target), i))
                 .OrderByDescending(vectorInfo => vectorInfo.Norm)
                 .ToArray();
         }
@@ -75,7 +75,7 @@
         // In every sequence, next vector always goes after the previous one from dictionary.
         // E.g. if dictionary is [x, y, z], then only [x, y] sequence could be generated, and [y, x] will never be generated.
         // That way, the complexity of search goes down by a factor of MaxVectorsCount! (as if [x, y] does not add up to a required target, there is no point in checking [y, x])
-        private static IEnumerable<ImmutableStack<Vector<byte>>> GenerateUnorderedSequences(Vector<byte> remainder, int remainderNorm, int allowedRemainingWords, ImmutableArray<VectorInfo> dictionary, int currentDictionaryPosition)
+        private static IEnumerable<ImmutableStack<int>> GenerateUnorderedSequences(Vector<byte> remainder, int remainderNorm, int allowedRemainingWords, ImmutableArray<VectorInfo> dictionary, int currentDictionaryPosition)
         {
             if (allowedRemainingWords > 1)
             {
@@ -90,7 +90,7 @@
                     var currentVectorInfo = dictionary[i];
                     if (currentVectorInfo.Vector == remainder)
                     {
-                        yield return ImmutableStack.Create(currentVectorInfo.Vector);
+                        yield return ImmutableStack.Create(currentVectorInfo.Index);
                     }
                     else if (currentVectorInfo.Norm < requiredRemainderPerWord)
                     {
@@ -102,7 +102,7 @@
                         var newRemainderNorm = remainderNorm - currentVectorInfo.Norm;
                         foreach (var result in GenerateUnorderedSequences(newRemainder, newRemainderNorm, newAllowedRemainingWords, dictionary, i))
                         {
-                            yield return result.Push(currentVectorInfo.Vector);
+                            yield return result.Push(currentVectorInfo.Index);
                         }
                     }
                 }
@@ -114,7 +114,7 @@
                     var currentVectorInfo = dictionary[i];
                     if (currentVectorInfo.Vector == remainder)
                     {
-                        yield return ImmutableStack.Create(currentVectorInfo.Vector);
+                        yield return ImmutableStack.Create(currentVectorInfo.Index);
                     }
                     else if (currentVectorInfo.Norm < remainderNorm)
                     {
@@ -176,15 +176,18 @@
 
         private struct VectorInfo
         {
-            public VectorInfo(Vector<byte> vector, int norm)
+            public VectorInfo(Vector<byte> vector, int norm, int index)
             {
                 this.Vector = vector;
                 this.Norm = norm;
+                this.Index = index;
             }
 
             public Vector<byte> Vector { get; }
 
             public int Norm { get; }
+
+            public int Index { get; }
         }
     }
 }

@@ -4,7 +4,6 @@
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
-    using System.Numerics;
 
     internal sealed class StringsProcessor
     {
@@ -15,22 +14,28 @@
             this.VectorsConverter = new VectorsConverter(filteredSource);
 
             // Dictionary of vectors to array of words represented by this vector
-            this.VectorsToWords = words
+            var vectorsToWords = words
                 .Select(word => new { word, vector = this.VectorsConverter.GetVector(word) })
                 .Where(tuple => tuple.vector != null)
                 .Select(tuple => new { tuple.word, vector = tuple.vector.Value })
                 .GroupBy(tuple => tuple.vector)
-                .ToDictionary(group => group.Key, group => group.Select(tuple => tuple.word).Distinct(new ByteArrayEqualityComparer()).ToArray());
+                .Select(group => new { vector = group.Key, words = group.Select(tuple => tuple.word).Distinct(new ByteArrayEqualityComparer()).ToArray() })
+                .ToList();
+
+            this.WordsDictionary = vectorsToWords.Select(tuple => tuple.words).ToArray();
 
             this.VectorsProcessor = new VectorsProcessor(
                 this.VectorsConverter.GetVector(filteredSource).Value,
                 maxWordsCount,
-                this.VectorsToWords.Keys);
+                vectorsToWords.Select(tuple => tuple.vector).ToArray());
         }
 
         private VectorsConverter VectorsConverter { get; }
 
-        private Dictionary<Vector<byte>, byte[][]> VectorsToWords { get; }
+        /// <summary>
+        /// WordsDictionary[vectorIndex] = [word1, word2, ...]
+        /// </summary>
+        private byte[][][] WordsDictionary { get; }
 
         private VectorsProcessor VectorsProcessor { get; }
 
@@ -67,13 +72,13 @@
             return Flatten(wordVariants.Item2).Select(words => Tuple.Create(item1, words));
         }
 
-        private Tuple<int, ImmutableStack<byte[][]>> ConvertVectorsToWords(Vector<byte>[] vectors)
+        private Tuple<int, ImmutableStack<byte[][]>> ConvertVectorsToWords(int[] vectors)
         {
             var length = vectors.Length;
             var words = new byte[length][][];
             for (var i = 0; i < length; i++)
             {
-                words[i] = this.VectorsToWords[vectors[i]];
+                words[i] = this.WordsDictionary[vectors[i]];
             }
 
             return Tuple.Create(length, ImmutableStack.Create(words));
