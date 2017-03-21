@@ -1,6 +1,7 @@
 ﻿namespace WhiteRabbit
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
@@ -15,7 +16,7 @@
     {
         private const string SourcePhrase = "poultry outwits ants";
 
-        private const int MaxWordsInPhrase = 4;
+        private const int MaxWordsInPhrase = 5;
 
         /// <summary>
         /// Main entry point
@@ -34,24 +35,51 @@
 
             var expectedHashesAsVectors = expectedHashes.Select(hash => new Vector<byte>(HexadecimalStringToByteArray(hash))).ToArray();
 
+            var anagramsBag = new ConcurrentBag<string>();
+            var sourceChars = ToOrderedChars(SourcePhrase);
+
             var processor = new StringsProcessor(Encoding.ASCII.GetBytes(SourcePhrase), MaxWordsInPhrase, ReadInput());
 
             Console.WriteLine($"Initialization complete; time from start: {stopwatch.Elapsed}");
 
-#if DEBUG
-            // it makes the program slow (as all anagrams are generated twice), but this code is only run in a debug mode
-            var totalAnagramsCount = processor.GeneratePhrases().Count();
-            Console.WriteLine($"Total anagrams count: {totalAnagramsCount}; time from start: {stopwatch.Elapsed}");
-#endif
-
             processor.GeneratePhrases()
-                .Select(phraseBytes => new { phraseBytes, hashVector = ComputeHashVector(phraseBytes) })
-                .Where(tuple => Array.IndexOf(expectedHashesAsVectors, tuple.hashVector) >= 0)
-                .Select(tuple => new { phrase = Encoding.ASCII.GetString(tuple.phraseBytes), hash = VectorToHexadecimalString(tuple.hashVector) })
-                .ForAll(phraseInfo => Console.WriteLine($"Found phrase for {phraseInfo.hash}: {phraseInfo.phrase}; time from start is {stopwatch.Elapsed}"));
+                .ForAll(phraseBytes =>
+                {
+                    Debug.Assert(
+                        sourceChars == ToOrderedChars(Encoding.ASCII.GetString(phraseBytes)),
+                        $"StringsProcessor produced incorrect anagram: {Encoding.ASCII.GetString(phraseBytes)}");
 
-            stopwatch.Stop();
+                    var hashVector = ComputeHashVector(phraseBytes);
+                    if (Array.IndexOf(expectedHashesAsVectors, hashVector) >= 0)
+                    {
+                        var phrase = Encoding.ASCII.GetString(phraseBytes);
+                        var hash = VectorToHexadecimalString(hashVector);
+                        Console.WriteLine($"Found phrase for {hash}: {phrase}; time from start is {stopwatch.Elapsed}");
+                    }
+
+#if DEBUG
+                    anagramsBag.Add(Encoding.ASCII.GetString(phraseBytes));
+#endif
+                });
+
             Console.WriteLine($"Done; time from start: {stopwatch.Elapsed}");
+
+#if DEBUG
+            var anagramsArray = anagramsBag.ToArray();
+            var anagramsSet = new HashSet<string>(anagramsArray);
+            Array.Sort(anagramsArray);
+
+            Console.WriteLine("All anagrams:");
+            for (var i = 0; i < anagramsArray.Length; i++)
+            {
+                Console.WriteLine(anagramsArray[i]);
+            }
+
+            // Duplicate anagrams are expected, as e.g. "norway spoils tut tut" will be taken twice:
+            // as "norway1 spoils2 tut3 tut4" and "norway1 spoils2 tut4 tut3"
+            // (in addition to e.g. "norway1 tut3 spoils2 tut4")
+            Console.WriteLine($"Total anagrams count: {anagramsArray.Length}; unique anagrams: {anagramsSet.Count}; time from start: {stopwatch.Elapsed}");
+#endif
         }
 
         // Code taken from http://stackoverflow.com/a/321404/831314
@@ -85,6 +113,11 @@
             {
                 yield return Encoding.ASCII.GetBytes(line);
             }
+        }
+
+        private static string ToOrderedChars(string source)
+        {
+            return new string(source.Where(ch => ch != ' ').OrderBy(ch => ch).ToArray());
         }
 
 #if SINGLE_THREADED

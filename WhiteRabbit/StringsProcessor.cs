@@ -2,14 +2,15 @@
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.Immutable;
     using System.Linq;
 
     internal sealed class StringsProcessor
     {
+        private const byte SPACE = 32;
+
         public StringsProcessor(byte[] sourceString, int maxWordsCount, IEnumerable<byte[]> words)
         {
-            var filteredSource = sourceString.Where(ch => ch != 32).ToArray();
+            var filteredSource = sourceString.Where(ch => ch != SPACE).ToArray();
             this.NumberOfCharacters = filteredSource.Length;
             this.VectorsConverter = new VectorsConverter(filteredSource);
 
@@ -79,7 +80,7 @@
             var position = currentWord.Length;
             for (var i = 1; i < words.Length; i++)
             {
-                result[position] = 32;
+                result[position] = SPACE;
                 position++;
 
                 currentWord = words[i];
