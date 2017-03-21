@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Configuration;
     using System.Diagnostics;
     using System.Linq;
     using System.Numerics;
@@ -14,10 +15,6 @@
     /// </summary>
     public static class Program
     {
-        private const string SourcePhrase = "poultry outwits ants";
-
-        private const int MaxWordsInPhrase = 5;
-
         /// <summary>
         /// Main entry point
         /// </summary>
@@ -26,19 +23,24 @@
             var stopwatch = new Stopwatch();
             stopwatch.Start();
 
-            var expectedHashes = new[]
-            {
-                "e4820b45d2277f3844eac66c903e84be",
-                "23170acc097c24edb98fc5488ab033fe",
-                "665e5bcb0c20062fe8abaaf4628bb154",
-            };
+            var sourcePhrase = ConfigurationManager.AppSettings["SourcePhrase"];
+            var sourceChars = ToOrderedChars(sourcePhrase);
 
-            var expectedHashesAsVectors = expectedHashes.Select(hash => new Vector<byte>(HexadecimalStringToByteArray(hash))).ToArray();
+            var maxWordsInPhrase = int.Parse(ConfigurationManager.AppSettings["MaxWordsInPhrase"]);
 
+            var expectedHashesAsVectors = ConfigurationManager.AppSettings["ExpectedHashes"]
+                .Split(',')
+                .Select(hash => new Vector<byte>(HexadecimalStringToByteArray(hash)))
+                .ToArray();
+
+#if DEBUG
             var anagramsBag = new ConcurrentBag<string>();
-            var sourceChars = ToOrderedChars(SourcePhrase);
+#endif
 
-            var processor = new StringsProcessor(Encoding.ASCII.GetBytes(SourcePhrase), MaxWordsInPhrase, ReadInput());
+            var processor = new StringsProcessor(
+                Encoding.ASCII.GetBytes(sourcePhrase),
+                maxWordsInPhrase,
+                ReadInput());
 
             Console.WriteLine($"Initialization complete; time from start: {stopwatch.Elapsed}");
 
