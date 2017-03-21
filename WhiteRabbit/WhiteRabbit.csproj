@@ -60,6 +60,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ByteArrayEqualityComparer.cs" />
+    <Compile Include="Flattener.cs" />
     <Compile Include="PrecomputedPermutationsGenerator.cs" />
     <Compile Include="PermutationsGenerator.cs" />
     <Compile Include="StringsProcessor.cs" />

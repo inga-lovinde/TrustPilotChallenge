@@ -54,30 +54,11 @@
             // converting sequences of vectors to the sequences of words...
             return sums
                 .Select(this.ConvertVectorsToWords)
-                .SelectMany(FlattenWords)
+                .SelectMany(Flattener.Flatten)
                 .Select(this.ConvertWordsToPhrase);
         }
 
-        // Converts e.g. pair of variants [[a, b, c], [d, e]] into all possible pairs: [[a, d], [a, e], [b, d], [b, e], [c, d], [c, e]]
-        private static IEnumerable<ImmutableStack<T>> Flatten<T>(ImmutableStack<T[]> phrase)
-        {
-            if (phrase.IsEmpty)
-            {
-                return new[] { ImmutableStack.Create<T>() };
-            }
-
-            T[] wordVariants;
-            var newStack = phrase.Pop(out wordVariants);
-            return Flatten(newStack).SelectMany(remainder => wordVariants.Select(word => remainder.Push(word)));
-        }
-
-        private static IEnumerable<Tuple<int, ImmutableStack<byte[]>>> FlattenWords(Tuple<int, ImmutableStack<byte[][]>> wordVariants)
-        {
-            var item1 = wordVariants.Item1;
-            return Flatten(wordVariants.Item2).Select(words => Tuple.Create(item1, words));
-        }
-
-        private Tuple<int, ImmutableStack<byte[][]>> ConvertVectorsToWords(int[] vectors)
+        private byte[][][] ConvertVectorsToWords(int[] vectors)
         {
             var length = vectors.Length;
             var words = new byte[length][][];
@@ -86,24 +67,22 @@
                 words[i] = this.WordsDictionary[vectors[i]];
             }
 
-            return Tuple.Create(length, ImmutableStack.Create(words));
+            return words;
         }
 
-        private byte[] ConvertWordsToPhrase(Tuple<int, ImmutableStack<byte[]>> words)
+        private byte[] ConvertWordsToPhrase(byte[][] words)
         {
-            var wordCount = words.Item1;
-            var result = new byte[this.NumberOfCharacters + wordCount - 1];
+            var result = new byte[this.NumberOfCharacters + words.Length - 1];
 
-            byte[] currentWord;
-            var currentStack = words.Item2.Pop(out currentWord);
+            byte[] currentWord = words[0];
             Buffer.BlockCopy(currentWord, 0, result, 0, currentWord.Length);
             var position = currentWord.Length;
-            while (!currentStack.IsEmpty)
+            for (var i = 1; i < words.Length; i++)
             {
                 result[position] = 32;
                 position++;
 
-                currentStack = currentStack.Pop(out currentWord);
+                currentWord = words[i];
                 Buffer.BlockCopy(currentWord, 0, result, position, currentWord.Length);
                 position += currentWord.Length;
             }

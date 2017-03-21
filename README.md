@@ -22,13 +22,14 @@ Anagrams generation is not parallelized, as even single-threaded performance for
 
 Multi-threaded performance with RyuJIT (.NET 4.6, 64-bit system) on quad-core Sandy Bridge @2.8GHz is as follows:
 
-* If only phrases of at most 4 words are allowed, then it takes around 4 seconds to find and check all 7433016 anagrams; all hashes are solved in first 0.5 seconds.
+* If only phrases of at most 4 words are allowed, then it takes **less than 3 seconds** to find and check all 7433016 anagrams; all hashes are solved in first 0.4 seconds.
 
-* If phrases of 5 words are allowed as well, then it takes around 12 minutes to find and check all 1348876896 anagrams; all hashes are solved in first 18 seconds. Most of time is spent on MD5 computations for correct anagrams, so there is not a lot to optimize further.
+* If phrases of 5 words are allowed as well, then it takes around 7.5 minutes to find and check all 1348876896 anagrams; all hashes are solved in first 10 seconds.
+Most of time is spent on MD5 computations for correct anagrams, so there is not a lot to optimize further.
 
-* If phrases of 6 words are allowed as well, then "more difficult" hash is solved in 19 seconds, "easiest" in 2 minutes, and "hard" in less than 5 minutes.
+* If phrases of 6 words are allowed as well, then "more difficult" hash is solved in 10 seconds, "easiest" in 1 minute, and "hard" in 2.5 minutes.
 
-* If phrases of 7 words are allowed as well, then "more difficult" hash is solved in ~2 minutes.
+* If phrases of 7 words are allowed as well, then "more difficult" hash is solved in 58 seconds.
 
 Note that all measurements were done on a Release build; Debug build is significantly slower.
 
