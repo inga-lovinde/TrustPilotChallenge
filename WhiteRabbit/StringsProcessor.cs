@@ -15,6 +15,7 @@
 
             // Dictionary of vectors to array of words represented by this vector
             var vectorsToWords = words
+                .Where(word => word != null && word.Length > 0)
                 .Select(word => new { word, vector = this.VectorsConverter.GetVector(word) })
                 .Where(tuple => tuple.vector != null)
                 .Select(tuple => new { tuple.word, vector = tuple.vector.Value })
@@ -41,7 +42,11 @@
 
         private int NumberOfCharacters { get; }
 
+#if SINGLE_THREADED
+        public IEnumerable<byte[]> GeneratePhrases()
+#else
         public ParallelQuery<byte[]> GeneratePhrases()
+#endif
         {
             // task of finding anagrams could be reduced to the task of finding sequences of dictionary vectors with the target sum
             var sums = this.VectorsProcessor.GenerateSequences();

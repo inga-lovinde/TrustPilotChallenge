@@ -86,5 +86,15 @@
                 yield return Encoding.ASCII.GetBytes(line);
             }
         }
+
+#if SINGLE_THREADED
+        private static void ForAll<T>(this IEnumerable<T> source, Action<T> action)
+        {
+            foreach (var entry in source)
+            {
+                action(entry);
+            }
+        }
+#endif
     }
 }

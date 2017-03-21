@@ -37,10 +37,16 @@
         private ImmutableArray<VectorInfo> Dictionary { get; }
 
         // Produces all sequences of vectors with the target sum
+#if SINGLE_THREADED
+        public IEnumerable<int[]> GenerateSequences()
+#else
         public ParallelQuery<int[]> GenerateSequences()
+#endif
         {
             return GenerateUnorderedSequences(this.Target, GetVectorNorm(this.Target, this.Target), this.MaxVectorsCount, this.Dictionary, 0)
+#if !SINGLE_THREADED
                 .AsParallel()
+#endif
                 .Select(Enumerable.ToArray)
                 .SelectMany(GeneratePermutations);
         }
