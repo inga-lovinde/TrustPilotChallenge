@@ -27,6 +27,7 @@
             var sourceChars = ToOrderedChars(sourcePhrase);
 
             var maxWordsInPhrase = int.Parse(ConfigurationManager.AppSettings["MaxWordsInPhrase"]);
+            var allowWordsReuse = bool.Parse(ConfigurationManager.AppSettings["AllowWordsReuse"]);
 
             var expectedHashesAsVectors = ConfigurationManager.AppSettings["ExpectedHashes"]
                 .Split(',')
@@ -40,6 +41,7 @@
             var processor = new StringsProcessor(
                 Encoding.ASCII.GetBytes(sourcePhrase),
                 maxWordsInPhrase,
+                allowWordsReuse,
                 ReadInput());
 
             Console.WriteLine($"Initialization complete; time from start: {stopwatch.Elapsed}");

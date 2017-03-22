@@ -17,7 +17,7 @@
             PrecomputedPermutationsGenerator.HamiltonianPermutations(0);
         }
 
-        public VectorsProcessor(Vector<byte> target, int maxVectorsCount, Vector<byte>[] dictionary)
+        public VectorsProcessor(Vector<byte> target, int maxVectorsCount, bool allowWordsReuse, Vector<byte>[] dictionary)
         {
             if (Enumerable.Range(0, Vector<byte>.Count).Any(i => target[i] > MaxComponentValue))
             {
@@ -27,12 +27,15 @@
             this.Target = target;
 
             this.MaxVectorsCount = maxVectorsCount;
+            this.AllowWordsReuseAddendum = allowWordsReuse ? 0 : 1;
             this.Dictionary = ImmutableArray.Create(FilterVectors(dictionary, target).ToArray());
         }
 
         private Vector<byte> Target { get; }
 
         private int MaxVectorsCount { get; }
+
+        private int AllowWordsReuseAddendum { get; }
 
         private ImmutableArray<VectorInfo> Dictionary { get; }
 
@@ -43,7 +46,14 @@
         public ParallelQuery<int[]> GenerateSequences()
 #endif
         {
-            return GenerateUnorderedSequences(this.Target, GetVectorNorm(this.Target, this.Target), this.MaxVectorsCount, this.Dictionary, 0)
+            var unorderedSequences = GenerateUnorderedSequences(
+                this.Target,
+                GetVectorNorm(this.Target, this.Target),
+                this.MaxVectorsCount,
+                this.Dictionary,
+                0,
+                this.AllowWordsReuseAddendum);
+            return unorderedSequences
 #if !SINGLE_THREADED
                 .AsParallel()
 #endif
@@ -81,7 +91,7 @@
         // In every sequence, next vector always goes after the previous one from dictionary.
         // E.g. if dictionary is [x, y, z], then only [x, y] sequence could be generated, and [y, x] will never be generated.
         // That way, the complexity of search goes down by a factor of MaxVectorsCount! (as if [x, y] does not add up to a required target, there is no point in checking [y, x])
-        private static IEnumerable<ImmutableStack<int>> GenerateUnorderedSequences(Vector<byte> remainder, int remainderNorm, int allowedRemainingWords, ImmutableArray<VectorInfo> dictionary, int currentDictionaryPosition)
+        private static IEnumerable<ImmutableStack<int>> GenerateUnorderedSequences(Vector<byte> remainder, int remainderNorm, int allowedRemainingWords, ImmutableArray<VectorInfo> dictionary, int currentDictionaryPosition, int dictionaryPositionAddendum)
         {
             if (allowedRemainingWords > 1)
             {
@@ -106,7 +116,15 @@
                     {
                         var newRemainder = remainder - currentVectorInfo.Vector;
                         var newRemainderNorm = remainderNorm - currentVectorInfo.Norm;
-                        foreach (var result in GenerateUnorderedSequences(newRemainder, newRemainderNorm, newAllowedRemainingWords, dictionary, i))
+                        var newSequences = GenerateUnorderedSequences(
+                            newRemainder,
+                            newRemainderNorm,
+                            newAllowedRemainingWords,
+                            dictionary,
+                            i + dictionaryPositionAddendum,
+                            dictionaryPositionAddendum);
+
+                        foreach (var result in newSequences)
                         {
                             yield return result.Push(currentVectorInfo.Index);
                         }
@@ -133,6 +151,11 @@
         // BCL BinarySearch would find any vector with required norm, not the first one; or would find nothing if there is no such vector
         private static int FindFirstWithNormLessOrEqual(int expectedNorm, ImmutableArray<VectorInfo> dictionary, int offset)
         {
+            if (offset >= dictionary.Length)
+            {
+                return dictionary.Length;
+            }
+
             var start = offset;
             var end = dictionary.Length - 1;
 

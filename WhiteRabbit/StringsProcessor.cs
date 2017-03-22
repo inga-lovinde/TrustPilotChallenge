@@ -8,7 +8,7 @@
     {
         private const byte SPACE = 32;
 
-        public StringsProcessor(byte[] sourceString, int maxWordsCount, IEnumerable<byte[]> words)
+        public StringsProcessor(byte[] sourceString, int maxWordsCount, bool allowWordsReuse, IEnumerable<byte[]> words)
         {
             var filteredSource = sourceString.Where(ch => ch != SPACE).ToArray();
             this.NumberOfCharacters = filteredSource.Length;
@@ -29,6 +29,7 @@
             this.VectorsProcessor = new VectorsProcessor(
                 this.VectorsConverter.GetVector(filteredSource).Value,
                 maxWordsCount,
+                allowWordsReuse,
                 vectorsToWords.Select(tuple => tuple.vector).ToArray());
         }
 
