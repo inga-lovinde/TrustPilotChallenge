@@ -53,13 +53,14 @@
                         sourceChars == ToOrderedChars(Encoding.ASCII.GetString(phraseBytes)),
                         $"StringsProcessor produced incorrect anagram: {Encoding.ASCII.GetString(phraseBytes)}");
 
-                    var hashVector = ComputeHashVector(phraseBytes);
+                    Console.WriteLine(Encoding.ASCII.GetString(phraseBytes));
+                    /*var hashVector = ComputeHashVector(phraseBytes);
                     if (Array.IndexOf(expectedHashesAsVectors, hashVector) >= 0)
                     {
                         var phrase = Encoding.ASCII.GetString(phraseBytes);
                         var hash = VectorToHexadecimalString(hashVector);
                         Console.WriteLine($"Found phrase for {hash}: {phrase}; time from start is {stopwatch.Elapsed}");
-                    }
+                    }*/
 
 #if DEBUG
                     anagramsBag.Add(Encoding.ASCII.GetString(phraseBytes));
@@ -115,6 +116,10 @@
             string line;
             while ((line = Console.ReadLine()) != null)
             {
+                if (line.Length == 1 && line != "a" && line != "i")
+                {
+                    continue;
+                }
                 yield return Encoding.ASCII.GetBytes(line);
             }
         }

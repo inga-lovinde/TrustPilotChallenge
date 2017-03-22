@@ -106,7 +106,7 @@
                     var currentVectorInfo = dictionary[i];
                     if (currentVectorInfo.Vector == remainder)
                     {
-                        yield return ImmutableStack.Create(currentVectorInfo.Index);
+                        //yield return ImmutableStack.Create(currentVectorInfo.Index);
                     }
                     else if (currentVectorInfo.Norm < requiredRemainderPerWord)
                     {
@@ -190,6 +190,9 @@
 
         private static IEnumerable<T[]> GeneratePermutations<T>(T[] original)
         {
+            yield return original;
+            yield break;
+            /*
             var length = original.Length;
             foreach (var permutation in PrecomputedPermutationsGenerator.HamiltonianPermutations(length))
             {
@@ -200,7 +203,7 @@
                 }
 
                 yield return result;
-            }
+            }*/
         }
 
         private struct VectorInfo
