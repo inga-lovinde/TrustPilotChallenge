@@ -3,6 +3,25 @@ Info
 
 This is my solution to the challenge: http://followthewhiterabbit.trustpilot.com/
 
+The task is to find anagrams of the phrase "**poultry outwits ants**" with the required MD5 hashes, using the supplied dictionary:
+
+```
+e4820b45d2277f3844eac66c903e84be # easy
+23170acc097c24edb98fc5488ab033fe # more difficult
+665e5bcb0c20062fe8abaaf4628bb154 # hard
+```
+
+And some more hashes for you to do:
+
+```
+e8a2cbb6206fc937082bb92e4ed9cd3d
+74a613b8c64fb216dc22d4f2bd4965f4
+ccb5ed231ba04d750c963668391d1e61
+d864ae0e66c89cb78345967cb2f3ab6b
+2b56477105d91076030e877c94dd9776
+732442feac8b5013e16a776486ac5447
+```
+
 Usage info
 ==========
 
