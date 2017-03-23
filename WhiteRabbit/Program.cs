@@ -8,7 +8,6 @@
     using System.Linq;
     using System.Numerics;
     using System.Text;
-    using Org.BouncyCastle.Crypto.Digests;
 
     /// <summary>
     /// Main class
@@ -30,7 +29,7 @@
 
             var expectedHashesAsVectors = ConfigurationManager.AppSettings["ExpectedHashes"]
                 .Split(',')
-                .Select(hash => new Vector<byte>(HexadecimalStringToByteArray(hash)))
+                .Select(hash => new Vector<uint>(HexadecimalStringToUnsignedIntArray(hash)))
                 .ToArray();
 
 #if DEBUG
@@ -85,27 +84,33 @@
         }
 
         // Code taken from http://stackoverflow.com/a/321404/831314
-        private static byte[] HexadecimalStringToByteArray(string hex)
+        private static uint[] HexadecimalStringToUnsignedIntArray(string hex)
         {
             return Enumerable.Range(0, hex.Length)
-                             .Where(x => x % 2 == 0)
-                             .Select(x => Convert.ToByte(hex.Substring(x, 2), 16))
+                             .Where(x => x % 8 == 0)
+                             .Select(x => ChangeEndianness(hex.Substring(x, 8)))
+                             .Select(hexLe => Convert.ToUInt32(hexLe, 16))
                              .ToArray();
         }
 
         // Bouncy Castle is used instead of standard .NET methods for performance reasons
-        private static Vector<byte> ComputeHashVector(byte[] input)
+        private static Vector<uint> ComputeHashVector(byte[] input)
         {
-            var digest = new MD5Digest();
-            digest.BlockUpdate(input, 0, input.Length);
-            byte[] hash = new byte[16];
-            digest.DoFinal(hash, 0);
-            return new Vector<byte>(hash);
+            return new Vector<uint>(MD5Digest.Compute(input));
         }
 
-        private static string VectorToHexadecimalString(Vector<byte> hash)
+        private static string VectorToHexadecimalString(Vector<uint> hash)
         {
-            return string.Concat(Enumerable.Range(0, 16).Select(i => hash[i].ToString("x2")));
+            var components = Enumerable.Range(0, 4)
+                .Select(i => hash[i].ToString("x8"))
+                .Select(ChangeEndianness);
+
+            return string.Concat(components);
+        }
+
+        private static string ChangeEndianness(string hex)
+        {
+            return hex.Substring(6, 2) + hex.Substring(4, 2) + hex.Substring(2, 2) + hex.Substring(0, 2);
         }
 
         private static IEnumerable<byte[]> ReadInput()
