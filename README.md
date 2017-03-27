@@ -41,18 +41,27 @@ Anagrams generation is not parallelized, as even single-threaded performance for
 
 Multi-threaded performance with RyuJIT (.NET 4.6, 64-bit system) on quad-core Sandy Bridge @2.8GHz is as follows:
 
-* If only phrases of at most 4 words are allowed, then it takes **around 2 seconds** to find and check all 7433016 anagrams; all hashes are solved in first 0.4 seconds.
+* If only phrases of at most 4 words are allowed, then it takes **less than 2 seconds** to find and check all 7433016 anagrams; all hashes are solved in first 0.3 seconds.
 
-* If phrases of 5 words are allowed as well, then it takes around 5.5 minutes to find and check all 1348876896 anagrams; all hashes are solved in first 8.5 seconds.
+* If phrases of 5 words are allowed as well, then it takes around 5 minutes to find and check all 1348876896 anagrams; all hashes are solved in first 7.5 seconds.
 Most of time is spent on MD5 computations for correct anagrams, so there is not a lot to optimize further.
 
-* If phrases of 6 words are allowed as well, then "more difficult" hash is solved in 9 seconds, "easiest" in 50 seconds, and "hard" in 2 minutes.
+* If phrases of 6 words are allowed as well, then "more difficult" hash is solved in 8 seconds, "easiest" in 48 seconds, and "hard" in less than 2 minutes.
 
-* If phrases of 7 words are allowed as well, then "more difficult" hash is solved in 56 seconds, "easiest" in 7 minutes, and "hard" in 18 minutes.
+* If phrases of 7 words are allowed as well, then "more difficult" hash is solved in 46 seconds, "easiest" in less than 6 minutes, and "hard" in around 15 minutes.
 
 Note that all measurements were done on a Release build; Debug build is significantly slower.
 
 For comparison, certain other solutions available on GitHub seem to require 3 hours to find all 3-word anagrams. This solution is faster by 5-7 orders of magnitude (it finds and checks all 4-word anagrams in 1/2000th fraction of time required for other solution just to find all 3-word anagrams, with no MD5 calculations).
+
+Conditional compilation symbols
+===============================
+
+* Define `BIG_ENDIAN` if you plan to run this on big-endian PC; this will disable certain MD5 optimizations that only produce correct result on little-endian PCs.
+
+* Define `SINGLE_THREADED` to use standard enumerables instead of ParallelEnumerable.
+
+* Define `DEBUG`, or build in debug mode, to get the total number of anagrams (not optimized, memory-hogging).
 
 Implementation notes
 ====================
