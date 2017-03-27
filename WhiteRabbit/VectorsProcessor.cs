@@ -11,12 +11,6 @@
         private const byte MaxComponentValue = 8;
         private const int LeastCommonMultiple = 840;
 
-        // Ensure that permutations are precomputed prior to main run, so that processing times will be correct
-        static VectorsProcessor()
-        {
-            PrecomputedPermutationsGenerator.HamiltonianPermutations(0);
-        }
-
         public VectorsProcessor(Vector<byte> target, int maxVectorsCount, Vector<byte>[] dictionary)
         {
             if (Enumerable.Range(0, Vector<byte>.Count).Any(i => target[i] > MaxComponentValue))
@@ -36,7 +30,7 @@
 
         private ImmutableArray<VectorInfo> Dictionary { get; }
 
-        // Produces all sequences of vectors with the target sum
+        // Produces all sets of vectors with the target sum
 #if SINGLE_THREADED
         public IEnumerable<int[]> GenerateSequences()
 #else
@@ -47,8 +41,7 @@
 #if !SINGLE_THREADED
                 .AsParallel()
 #endif
-                .Select(Enumerable.ToArray)
-                .SelectMany(GeneratePermutations);
+                .Select(Enumerable.ToArray);
         }
 
         // We want words with more letters (and among these, words with more "rare" letters) to appear first, to reduce the searching time somewhat.
@@ -163,21 +156,6 @@
             }
 
             return start;
-        }
-
-        private static IEnumerable<T[]> GeneratePermutations<T>(T[] original)
-        {
-            var length = original.Length;
-            foreach (var permutation in PrecomputedPermutationsGenerator.HamiltonianPermutations(length))
-            {
-                var result = new T[length];
-                for (var i = 0; i < length; i++)
-                {
-                    result[i] = original[permutation[i]];
-                }
-
-                yield return result;
-            }
         }
 
         private struct VectorInfo

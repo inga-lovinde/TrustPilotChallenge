@@ -8,6 +8,12 @@
     {
         private const byte SPACE = 32;
 
+        // Ensure that permutations are precomputed prior to main run, so that processing times will be correct
+        static StringsProcessor()
+        {
+            PrecomputedPermutationsGenerator.HamiltonianPermutations(0);
+        }
+
         public StringsProcessor(byte[] sourceString, int maxWordsCount, IEnumerable<byte[]> words)
         {
             var filteredSource = sourceString.Where(ch => ch != SPACE).ToArray();
@@ -56,7 +62,23 @@
             return sums
                 .Select(this.ConvertVectorsToWords)
                 .SelectMany(Flattener.Flatten)
+                .SelectMany(GeneratePermutations)
                 .Select(this.ConvertWordsToPhrase);
+        }
+
+        private static IEnumerable<T[]> GeneratePermutations<T>(T[] original)
+        {
+            var length = original.Length;
+            foreach (var permutation in PrecomputedPermutationsGenerator.HamiltonianPermutations(length))
+            {
+                var result = new T[length];
+                for (var i = 0; i < length; i++)
+                {
+                    result[i] = original[permutation[i]];
+                }
+
+                yield return result;
+            }
         }
 
         private byte[][][] ConvertVectorsToWords(int[] vectors)

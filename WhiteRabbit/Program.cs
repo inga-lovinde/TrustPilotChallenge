@@ -55,6 +55,8 @@
 
             Console.WriteLine($"Initialization complete; time from start: {stopwatch.Elapsed}");
 
+            stopwatch.Restart();
+
             processor.GeneratePhrases()
                 .ForAll(phraseBytes =>
                 {
