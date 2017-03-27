@@ -2,8 +2,6 @@
 {
     internal unsafe struct Phrase
     {
-        private const byte SPACE = 32;
-
         public fixed byte Buffer[32];
 
         public Phrase(byte[][] words, int numberOfCharacters)
@@ -20,16 +18,13 @@
                 {
                     if (j >= currentWord.Length)
                     {
-                        *currentPointer = SPACE;
                         j = 0;
                         wordIndex++;
                         currentWord = words[wordIndex];
                     }
-                    else
-                    {
-                        *currentPointer = currentWord[j];
-                        j++;
-                    }
+
+                    *currentPointer = currentWord[j];
+                    j++;
                 }
 
                 bufferPointer[31] = (byte)length;
