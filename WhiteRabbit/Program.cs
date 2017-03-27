@@ -27,6 +27,18 @@
 
             var maxWordsInPhrase = int.Parse(ConfigurationManager.AppSettings["MaxWordsInPhrase"]);
 
+            if (sourceChars.Length + maxWordsInPhrase > 27)
+            {
+                Console.WriteLine("Only anagrams of up to 27 characters are allowed");
+                return;
+            }
+
+            if (!BitConverter.IsLittleEndian)
+            {
+                Console.WriteLine("Only little-endian systems are supported due to MD5Digest optimizations");
+                return;
+            }
+
             var expectedHashesAsVectors = ConfigurationManager.AppSettings["ExpectedHashes"]
                 .Split(',')
                 .Select(hash => new Vector<uint>(HexadecimalStringToUnsignedIntArray(hash)))
