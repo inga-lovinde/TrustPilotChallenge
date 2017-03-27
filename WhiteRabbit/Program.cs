@@ -47,19 +47,19 @@
                 .ForAll(phraseBytes =>
                 {
                     Debug.Assert(
-                        sourceChars == ToOrderedChars(Encoding.ASCII.GetString(phraseBytes)),
-                        $"StringsProcessor produced incorrect anagram: {Encoding.ASCII.GetString(phraseBytes)}");
+                        sourceChars == ToOrderedChars(ToString(phraseBytes)),
+                        $"StringsProcessor produced incorrect anagram: {ToString(phraseBytes)}");
 
                     var hashVector = ComputeHashVector(phraseBytes);
                     if (Array.IndexOf(expectedHashesAsVectors, hashVector) >= 0)
                     {
-                        var phrase = Encoding.ASCII.GetString(phraseBytes);
+                        var phrase = ToString(phraseBytes);
                         var hash = VectorToHexadecimalString(hashVector);
                         Console.WriteLine($"Found phrase for {hash}: {phrase}; time from start is {stopwatch.Elapsed}");
                     }
 
 #if DEBUG
-                    anagramsBag.Add(Encoding.ASCII.GetString(phraseBytes));
+                    anagramsBag.Add(ToString(phraseBytes));
 #endif
                 });
 
@@ -94,7 +94,7 @@
         }
 
         // Bouncy Castle is used instead of standard .NET methods for performance reasons
-        private static Vector<uint> ComputeHashVector(byte[] input)
+        private static Vector<uint> ComputeHashVector(Phrase input)
         {
             return new Vector<uint>(MD5Digest.Compute(input));
         }
@@ -111,6 +111,11 @@
         private static string ChangeEndianness(string hex)
         {
             return hex.Substring(6, 2) + hex.Substring(4, 2) + hex.Substring(2, 2) + hex.Substring(0, 2);
+        }
+
+        private static string ToString(Phrase phrase)
+        {
+            return Encoding.ASCII.GetString(phrase.GetBytes());
         }
 
         private static IEnumerable<byte[]> ReadInput()

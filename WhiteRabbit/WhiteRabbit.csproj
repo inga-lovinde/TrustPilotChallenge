@@ -12,6 +12,7 @@
     <TargetFrameworkVersion>v4.6</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -59,6 +60,7 @@
     <Compile Include="ByteArrayEqualityComparer.cs" />
     <Compile Include="Flattener.cs" />
     <Compile Include="MD5Digest.cs" />
+    <Compile Include="Phrase.cs" />
     <Compile Include="PrecomputedPermutationsGenerator.cs" />
     <Compile Include="PermutationsGenerator.cs" />
     <Compile Include="StringsProcessor.cs" />

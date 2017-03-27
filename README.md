@@ -29,6 +29,8 @@ Usage info
 WhiteRabbit.exe < wordlist
 ```
 
+**Note that this code only works correctly on big-endian x64 systems, due to heavy optimizations of MD5 computation!**
+
 Performance
 ===========
 
@@ -43,12 +45,11 @@ Multi-threaded performance with RyuJIT (.NET 4.6, 64-bit system) on quad-core Sa
 
 * If only phrases of at most 4 words are allowed, then it takes **less than 2 seconds** to find and check all 7433016 anagrams; all hashes are solved in first 0.3 seconds.
 
-* If phrases of 5 words are allowed as well, then it takes around 5 minutes to find and check all 1348876896 anagrams; all hashes are solved in first 7.5 seconds.
-Most of time is spent on MD5 computations for correct anagrams, so there is not a lot to optimize further.
+* If phrases of 5 words are allowed as well, then it takes around 4 minutes to find and check all 1348876896 anagrams; all hashes are solved in first 6.5 seconds.
 
-* If phrases of 6 words are allowed as well, then "more difficult" hash is solved in 8 seconds, "easiest" in 48 seconds, and "hard" in less than 2 minutes.
+* If phrases of 6 words are allowed as well, then "more difficult" hash is solved in 6 seconds, "easiest" in 38 seconds, and "hard" in 1.5 minutes.
 
-* If phrases of 7 words are allowed as well, then "more difficult" hash is solved in 46 seconds, "easiest" in less than 6 minutes, and "hard" in around 15 minutes.
+* If phrases of 7 words are allowed as well, then "more difficult" hash is solved in 39 seconds, "easiest" in less than 5 minutes, and "hard" in 13 minutes.
 
 Note that all measurements were done on a Release build; Debug build is significantly slower.
 
@@ -56,8 +57,6 @@ For comparison, certain other solutions available on GitHub seem to require 3 ho
 
 Conditional compilation symbols
 ===============================
-
-* Define `BIG_ENDIAN` if you plan to run this on big-endian PC; this will disable certain MD5 optimizations that only produce correct result on little-endian PCs.
 
 * Define `SINGLE_THREADED` to use standard enumerables instead of ParallelEnumerable.
 

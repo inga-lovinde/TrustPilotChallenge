@@ -46,7 +46,7 @@
 #if SINGLE_THREADED
         public IEnumerable<byte[]> GeneratePhrases()
 #else
-        public ParallelQuery<byte[]> GeneratePhrases()
+        public ParallelQuery<Phrase> GeneratePhrases()
 #endif
         {
             // task of finding anagrams could be reduced to the task of finding sequences of dictionary vectors with the target sum
@@ -71,24 +71,9 @@
             return words;
         }
 
-        private byte[] ConvertWordsToPhrase(byte[][] words)
+        private unsafe Phrase ConvertWordsToPhrase(byte[][] words)
         {
-            var result = new byte[this.NumberOfCharacters + words.Length - 1];
-
-            byte[] currentWord = words[0];
-            Buffer.BlockCopy(currentWord, 0, result, 0, currentWord.Length);
-            var position = currentWord.Length;
-            for (var i = 1; i < words.Length; i++)
-            {
-                result[position] = SPACE;
-                position++;
-
-                currentWord = words[i];
-                Buffer.BlockCopy(currentWord, 0, result, position, currentWord.Length);
-                position += currentWord.Length;
-            }
-
-            return result;
+            return new Phrase(words, this.NumberOfCharacters);
         }
     }
 }
