@@ -39,6 +39,11 @@
                 return;
             }
 
+            if (IntPtr.Size != 8)
+            {
+                Console.WriteLine("Only 64-bit systems are supported due to MD5Digest optimizations");
+            }
+
             var expectedHashesAsVectors = ConfigurationManager.AppSettings["ExpectedHashes"]
                 .Split(',')
                 .Select(hash => new Vector<uint>(HexadecimalStringToUnsignedIntArray(hash)))

@@ -29,7 +29,7 @@ Usage info
 WhiteRabbit.exe < wordlist
 ```
 
-**Note that this code only works correctly on big-endian x64 systems, due to heavy optimizations of MD5 computation!**
+**Note that this code only works correctly on little-endian x64 systems, due to heavy optimizations of MD5 computation!**
 
 Performance
 ===========
