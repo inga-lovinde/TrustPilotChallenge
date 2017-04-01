@@ -62,23 +62,7 @@
             return sums
                 .Select(this.ConvertVectorsToWords)
                 .SelectMany(Flattener.Flatten)
-                .SelectMany(GeneratePermutations)
-                .Select(this.ConvertWordsToPhrase);
-        }
-
-        private static IEnumerable<T[]> GeneratePermutations<T>(T[] original)
-        {
-            var length = original.Length;
-            foreach (var permutation in PrecomputedPermutationsGenerator.HamiltonianPermutations(length))
-            {
-                var result = new T[length];
-                for (var i = 0; i < length; i++)
-                {
-                    result[i] = original[permutation[i]];
-                }
-
-                yield return result;
-            }
+                .SelectMany(this.ConvertWordsToPhrases);
         }
 
         private byte[][][] ConvertVectorsToWords(int[] vectors)
@@ -93,9 +77,12 @@
             return words;
         }
 
-        private unsafe Phrase ConvertWordsToPhrase(byte[][] words)
+        private IEnumerable<Phrase> ConvertWordsToPhrases(byte[][] words)
         {
-            return new Phrase(words, this.NumberOfCharacters);
+            foreach (var permutation in PrecomputedPermutationsGenerator.HamiltonianPermutations(words.Length))
+            {
+                yield return new Phrase(words, permutation, this.NumberOfCharacters);
+            }
         }
     }
 }

@@ -5,13 +5,13 @@
     {
         public fixed uint Buffer[8];
 
-        public Phrase(byte[][] words, int numberOfCharacters)
+        public Phrase(byte[][] words, PermutationsGenerator.Permutation permutation, int numberOfCharacters)
         {
             fixed (uint* bufferPointer = this.Buffer)
             {
                 var length = numberOfCharacters + words.Length - 1;
 
-                byte[] currentWord = words[0];
+                byte[] currentWord = words[permutation[0]];
                 var j = 0;
                 var wordIndex = 0;
                 var currentPointer = (byte*)bufferPointer;
@@ -22,7 +22,7 @@
                     {
                         j = 0;
                         wordIndex++;
-                        currentWord = words[wordIndex];
+                        currentWord = words[permutation[wordIndex]];
                     }
 
                     *currentPointer = currentWord[j];

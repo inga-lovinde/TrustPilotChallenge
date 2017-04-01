@@ -43,13 +43,13 @@ Anagrams generation is not parallelized, as even single-threaded performance for
 
 Multi-threaded performance with RyuJIT (.NET 4.6, 64-bit system) on quad-core Sandy Bridge @2.8GHz is as follows (excluding initialization time of 0.2 seconds):
 
-* If only phrases of at most 4 words are allowed, then it takes **1.5 seconds** to find and check all 7433016 anagrams; **all hashes are solved in first 0.2 seconds**.
+* If only phrases of at most 4 words are allowed, then it takes **1.1 seconds** to find and check all 7433016 anagrams; **all hashes are solved in first 0.2 seconds**.
 
-* If phrases of 5 words are allowed as well, then it takes 3.5 minutes to find and check all 1348876896 anagrams; all hashes are solved in less than 5 seconds.
+* If phrases of 5 words are allowed as well, then it takes 2:45 minutes to find and check all 1348876896 anagrams; all hashes are solved in first 4 seconds.
 
-* If phrases of 6 words are allowed as well, then "more difficult" hash is solved in 4.5 seconds, "easiest" in 28 seconds, and "hard" in 70 seconds.
+* If phrases of 6 words are allowed as well, then "more difficult" hash is solved in 3.5 seconds, "easiest" in 21 seconds, and "hard" in 54 seconds.
 
-* If phrases of 7 words are allowed as well, then "more difficult" hash is solved in 27 seconds, "easiest" in less than 3.5 minutes, and "hard" in 9.5 minutes.
+* If phrases of 7 words are allowed as well, then "more difficult" hash is solved in 20 seconds, "easiest" in less than 2.5 minutes, and "hard" in 6:45 minutes.
 
 Note that all measurements were done on a Release build; Debug build is significantly slower.
 
@@ -111,6 +111,4 @@ There is no need in processing all the words that are too large to be useful at 
 11. Filtering the original dictionary (e.g. throwing away all single-letter words) does not really improve the performance, thanks to the optimizations mentioned in notes 7-9.
 This solution finds all anagrams, including those with single-letter words.
 
-12. MD5 computation could be further optimized by:
-    * Using CPU instructions for rotation (implemented in not yet released version of RyuJIT): https://github.com/dotnet/coreclr/pull/1830
-    * Computing several MD5 hashes in parallel on each core, using SSE (4 hashes / core) or AVX2 (8 hashes / core). However, even bit shifts on vectors are not yet supported by .NET: https://github.com/dotnet/coreclr/issues/3226
+12. MD5 computation could be further optimized by leveraging CPU extensions; however, it could not be done with current .NET (see readme for https://github.com/penartur/TrustPilotChallenge/tree/simd-md5)
