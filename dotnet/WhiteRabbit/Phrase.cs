@@ -1,11 +1,11 @@
 ﻿namespace WhiteRabbit
 {
     // Anagram representation optimized for MD5
-    internal unsafe struct Phrase
+    internal class Phrase
     {
-        public fixed uint Buffer[8];
+        public readonly uint[] Buffer = new uint[8];
 
-        public Phrase(byte[][] words, int numberOfCharacters)
+        public unsafe Phrase(byte[][] words, int numberOfCharacters)
         {
             fixed (uint* bufferPointer = this.Buffer)
             {
@@ -34,7 +34,7 @@
             }
         }
 
-        public byte[] GetBytes()
+        public unsafe byte[] GetBytes()
         {
             fixed(uint* bufferPointer = this.Buffer)
             {

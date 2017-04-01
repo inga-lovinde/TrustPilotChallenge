@@ -12,7 +12,7 @@ namespace WhiteRabbit
     internal static class MD5Digest
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe uint[] Compute(Phrase input)
+        public static uint[] Compute(Phrase input)
         {
             uint a = 0x67452301;
             uint b = 0xefcdab89;
