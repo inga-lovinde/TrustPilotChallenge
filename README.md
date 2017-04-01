@@ -1,3 +1,20 @@
+NOTES!!!
+========
+
+This branch is an attempt to further optimize MD5 computation.
+With SIMD, one can perform all the arithmetic operations in MD5 on vectors of uints instead of individual uints, effectively computing 4 hashes (or 8 hashes on AVX2) at once.
+
+However, SIMD support is somewhat limited in C#; for example, it does not give access not only to rotate commands, but even to bitshift commands; so, in order to perform rotate, I had to split vector back into components, rotate individual components, and then combine these back into vector.
+Additionally, there is a performance hit on initialization stage, as to create a vector, one has to allocate an array of its components first.
+
+In the last commit, I tried to refactor MD5Digest to operate on vectors instead of individual uints, and I've got an overall performance hit of 4x (or 2x, if I replace LeftRotate with noop).
+Even computing 4 hashes at once (4x speedup of MD5Digest) won't compensate for this.
+
+How MD5 could be optimized further:
+
+* Using CPU instructions for rotation (implemented in not yet released version of RyuJIT): https://github.com/dotnet/coreclr/pull/1830
+* Computing several MD5 hashes in parallel on each core, using SSE (4 hashes / core) or AVX2 (8 hashes / core). However, even bit shifts on vectors are not yet supported by .NET: https://github.com/dotnet/coreclr/issues/3226
+
 Info
 ====
 
