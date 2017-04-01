@@ -45,11 +45,11 @@ Multi-threaded performance with RyuJIT (.NET 4.6, 64-bit system) on quad-core Sa
 
 * If only phrases of at most 4 words are allowed, then it takes **1.5 seconds** to find and check all 7433016 anagrams; **all hashes are solved in first 0.2 seconds**.
 
-* If phrases of 5 words are allowed as well, then it takes 3.5 minutes to find and check all 1348876896 anagrams; all hashes are solved in first 5 seconds.
+* If phrases of 5 words are allowed as well, then it takes 3.5 minutes to find and check all 1348876896 anagrams; all hashes are solved in less than 5 seconds.
 
-* If phrases of 6 words are allowed as well, then "more difficult" hash is solved in 5 seconds, "easiest" in 30 seconds, and "hard" in 75 seconds.
+* If phrases of 6 words are allowed as well, then "more difficult" hash is solved in 4.5 seconds, "easiest" in 28 seconds, and "hard" in 70 seconds.
 
-* If phrases of 7 words are allowed as well, then "more difficult" hash is solved in 29 seconds, "easiest" in 3.5 minutes, and "hard" in 9.5 minutes.
+* If phrases of 7 words are allowed as well, then "more difficult" hash is solved in 27 seconds, "easiest" in less than 3.5 minutes, and "hard" in 9.5 minutes.
 
 Note that all measurements were done on a Release build; Debug build is significantly slower.
 
@@ -58,7 +58,7 @@ For comparison, certain other solutions available on GitHub seem to require 3 ho
 Conditional compilation symbols
 ===============================
 
-* Define `SINGLE_THREADED` to use standard enumerables instead of ParallelEnumerable.
+* Define `SINGLE_THREADED` to use standard enumerables instead of ParallelEnumerable (useful for profiling).
 
 * Define `DEBUG`, or build in debug mode, to get the total number of anagrams (not optimized, memory-hogging).
 
@@ -104,8 +104,9 @@ As we have ordered the words by weight, when we're looping over the dictionary, 
 9. Another possible optimization with such an ordering is employing binary search.
 There is no need in processing all the words that are too large to be useful at this moment; we can start with a first word with a weight not exceeding distance between current partial sum and the target.
 
-10. And then, all that remains are implementation optimizations: precomputing weights, optimizing memory usage and loops, using byte arrays instead of strings, etc.
+10. And then, all that remains are implementation optimizations: precomputing weights, optimizing memory usage and loops, using byte arrays instead of strings, etc. Some of optimizations which hurt code readability:
+    * Words are stored as byte arrays (one byte per character, as we're working with ASCII), with trailing space (to make concatenating words into anagram easier);
+    * Anagrams are stored in a way optimized for MD5 - as MD5 message (i.e. with trailing "128" byte, as an array of 8 uints, with last uint set to anagram length * 8). For example, "poultry outwits ants" is stored as fixed 32-byte memory area containing "poultry outwits ants" + 0x80 + (0x00)x7 + (uint)0x50 (for 20 characters).
 
 11. Filtering the original dictionary (e.g. throwing away all single-letter words) does not really improve the performance, thanks to the optimizations mentioned in notes 7-9.
 This solution finds all anagrams, including those with single-letter words.
-
