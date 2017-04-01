@@ -110,3 +110,7 @@ There is no need in processing all the words that are too large to be useful at 
 
 11. Filtering the original dictionary (e.g. throwing away all single-letter words) does not really improve the performance, thanks to the optimizations mentioned in notes 7-9.
 This solution finds all anagrams, including those with single-letter words.
+
+12. MD5 computation could be further optimized by:
+    * Using CPU instructions for rotation (implemented in not yet released version of RyuJIT): https://github.com/dotnet/coreclr/pull/1830
+    * Computing several MD5 hashes in parallel on each core, using SSE (4 hashes / core) or AVX2 (8 hashes / core). However, even bit shifts on vectors are not yet supported by .NET: https://github.com/dotnet/coreclr/issues/3226
