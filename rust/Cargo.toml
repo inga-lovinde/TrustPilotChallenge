@@ -1,0 +1,5 @@
+[package]
+
+name = "trustpilot_challenge"
+version = "0.0.1"
+authors = [ "penartur <penartur@users.noreply.github.com>" ]

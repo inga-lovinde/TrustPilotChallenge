@@ -62,23 +62,35 @@
             return sums
                 .Select(this.ConvertVectorsToWords)
                 .SelectMany(Flattener.Flatten)
-                .SelectMany(GeneratePermutations)
+                .SelectMany(GeneratePermutationsChunked)
                 .Select(this.ConvertWordsToPhrase);
         }
 
-        private static IEnumerable<T[]> GeneratePermutations<T>(T[] original)
+        private static IEnumerable<T[][]> GeneratePermutationsChunked<T>(T[] original)
         {
             var length = original.Length;
-            foreach (var permutation in PrecomputedPermutationsGenerator.HamiltonianPermutations(length))
+            var permutations = PrecomputedPermutationsGenerator.HamiltonianPermutations(length);
+            for (var i = 0; i < permutations.Length; i += 4)
             {
-                var result = new T[length];
-                for (var i = 0; i < length; i++)
+                yield return new[]
                 {
-                    result[i] = original[permutation[i]];
-                }
-
-                yield return result;
+                    GetPermutedArray(original, permutations[i]),
+                    GetPermutedArray(original, permutations[i + 1]),
+                    GetPermutedArray(original, permutations[i + 2]),
+                    GetPermutedArray(original, permutations[i + 3]),
+                };
             }
+        }
+
+        private static T[] GetPermutedArray<T>(T[] original, PermutationsGenerator.Permutation permutation)
+        {
+            var length = original.Length;
+            var result = new T[length];
+            for (var i = 0; i < length; i++)
+            {
+                result[i] = original[permutation[i]];
+            }
+            return result;
         }
 
         private byte[][][] ConvertVectorsToWords(int[] vectors)
@@ -93,9 +105,9 @@
             return words;
         }
 
-        private unsafe Phrase ConvertWordsToPhrase(byte[][] words)
+        private unsafe PhrasesChunk ConvertWordsToPhrase(byte[][][] words)
         {
-            return new Phrase(words, this.NumberOfCharacters);
+            return new PhrasesChunk(words[0], words[1], words[2], words[3], this.NumberOfCharacters);
         }
     }
 }

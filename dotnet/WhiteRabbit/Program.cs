@@ -42,6 +42,12 @@
             if (IntPtr.Size != 8)
             {
                 Console.WriteLine("Only 64-bit systems are supported due to MD5Digest optimizations");
+                return;
+            }
+
+            if (Vector<uint>.Count != 4)
+            {
+                Console.WriteLine("Only 128-bit SSE systems are supported due to MD5Digest optimizations");
             }
 
             var expectedHashesAsVectors = ConfigurationManager.AppSettings["ExpectedHashes"]

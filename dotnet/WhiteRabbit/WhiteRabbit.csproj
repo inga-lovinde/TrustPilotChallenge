@@ -60,7 +60,8 @@
     <Compile Include="ByteArrayEqualityComparer.cs" />
     <Compile Include="Flattener.cs" />
     <Compile Include="MD5Digest.cs" />
-    <Compile Include="Phrase.cs" />
+    <Compile Include="PhrasesChunk.cs" />
+    <Compile Include="PhrasesHashesChunk.cs" />
     <Compile Include="PrecomputedPermutationsGenerator.cs" />
     <Compile Include="PermutationsGenerator.cs" />
     <Compile Include="StringsProcessor.cs" />

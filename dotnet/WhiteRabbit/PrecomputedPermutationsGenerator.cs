@@ -17,14 +17,22 @@
             PermutationsGenerator.HamiltonianPermutations(7).ToArray(),
         };
 
-        public static IEnumerable<PermutationsGenerator.Permutation> HamiltonianPermutations(int n)
+        // for MD5 SIMD optimization and code simplicity reasons, number of permutations should divide by 4
+        public static PermutationsGenerator.Permutation[] HamiltonianPermutations(int n)
         {
-            if (n > 9)
+            return Permutations[n];
+        }
+
+        private static PermutationsGenerator.Permutation[] GeneratePermutations(int n)
+        {
+            var result = PermutationsGenerator.HamiltonianPermutations(n).ToList();
+            if (result.Count == 0)
             {
-                return PermutationsGenerator.HamiltonianPermutations(n);
+                return result.ToArray();
             }
 
-            return Permutations[n];
+            var extra = (4 - (result.Count % 4)) % 4;
+            return result.Concat(Enumerable.Repeat(result[0], extra)).ToArray();
         }
     }
 }
