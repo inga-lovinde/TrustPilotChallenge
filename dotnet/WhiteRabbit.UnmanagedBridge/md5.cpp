@@ -7,101 +7,152 @@
 
 #pragma unmanaged
 
-inline unsigned int Blend(unsigned int a, unsigned int b, unsigned int x)
+typedef unsigned int MD5Word;
+
+inline MD5Word Blend(MD5Word a, MD5Word b, MD5Word x)
 {
     return (x & b) | (~x & a);
 }
 
-inline unsigned int Xor(unsigned int a, unsigned int b, unsigned int c)
+inline MD5Word Xor(MD5Word a, MD5Word b, MD5Word c)
 {
     return a ^ b ^ c;
 }
 
-inline unsigned int I(unsigned int a, unsigned int b, unsigned int c)
+inline MD5Word I(MD5Word a, MD5Word b, MD5Word c)
 {
     return a ^ (b | ~c);
 }
 
-inline unsigned int LeftRotate(unsigned int x, int left)
+template<int r>
+inline MD5Word LeftRotate(MD5Word x)
 {
-    return _rotl(x, left);
+    return _rotl(x, r);
 }
 
-void md5(unsigned int * input, unsigned int* output)
+template<int r>
+inline MD5Word Step1(MD5Word a, MD5Word b, MD5Word c, MD5Word d, MD5Word k, MD5Word w)
+{
+    return b + LeftRotate<r>(k + a + Blend(d, c, b) + w);
+}
+
+template<int r>
+inline MD5Word Step1(MD5Word a, MD5Word b, MD5Word c, MD5Word d, MD5Word k)
+{
+    return b + LeftRotate<r>(k + a + Blend(d, c, b));
+}
+
+template<int r>
+inline MD5Word Step2(MD5Word a, MD5Word b, MD5Word c, MD5Word d, MD5Word k, MD5Word w)
+{
+    return c + LeftRotate<r>(k + a + Blend(d, c, b) + w);
+}
+
+template<int r>
+inline MD5Word Step2(MD5Word a, MD5Word b, MD5Word c, MD5Word d, MD5Word k)
+{
+    return c + LeftRotate<r>(k + a + Blend(d, c, b));
+}
+
+template<int r>
+inline MD5Word Step3(MD5Word a, MD5Word b, MD5Word c, MD5Word d, MD5Word k, MD5Word w)
+{
+    return b + LeftRotate<r>(k + a + Xor(b, c, d) + w);
+}
+
+template<int r>
+inline MD5Word Step3(MD5Word a, MD5Word b, MD5Word c, MD5Word d, MD5Word k)
+{
+    return b + LeftRotate<r>(k + a + Xor(b, c, d));
+}
+
+template<int r>
+inline MD5Word Step4(MD5Word a, MD5Word b, MD5Word c, MD5Word d, MD5Word k, MD5Word w)
+{
+    return b + LeftRotate<r>(k + a + I(c, b, d) + w);
+}
+
+template<int r>
+inline MD5Word Step4(MD5Word a, MD5Word b, MD5Word c, MD5Word d, MD5Word k)
+{
+    return b + LeftRotate<r>(k + a + I(c, b, d));
+}
+
+void md5(unsigned int * input, unsigned int * output)
 {
 
-    unsigned int a = 0x67452301;
-    unsigned int b = 0xefcdab89;
-    unsigned int c = 0x98badcfe;
-    unsigned int d = 0x10325476;
+    MD5Word a = 0x67452301;
+    MD5Word b = 0xefcdab89;
+    MD5Word c = 0x98badcfe;
+    MD5Word d = 0x10325476;
 
-    a = b + LeftRotate(0xd76aa478 + a + Blend(d, c, b) + input[0], 7);
-    d = a + LeftRotate(0xe8c7b756 + d + Blend(c, b, a) + input[1], 12);
-    c = d + LeftRotate(0x242070db + c + Blend(b, a, d) + input[2], 17);
-    b = c + LeftRotate(0xc1bdceee + b + Blend(a, d, c) + input[3], 22);
-    a = b + LeftRotate(0xf57c0faf + a + Blend(d, c, b) + input[4], 7);
-    d = a + LeftRotate(0x4787c62a + d + Blend(c, b, a) + input[5], 12);
-    c = d + LeftRotate(0xa8304613 + c + Blend(b, a, d) + input[6], 17);
-    b = c + LeftRotate(0xfd469501 + b + Blend(a, d, c), 22);
-    a = b + LeftRotate(0x698098d8 + a + Blend(d, c, b), 7);
-    d = a + LeftRotate(0x8b44f7af + d + Blend(c, b, a), 12);
-    c = d + LeftRotate(0xffff5bb1 + c + Blend(b, a, d), 17);
-    b = c + LeftRotate(0x895cd7be + b + Blend(a, d, c), 22);
-    a = b + LeftRotate(0x6b901122 + a + Blend(d, c, b), 7);
-    d = a + LeftRotate(0xfd987193 + d + Blend(c, b, a), 12);
-    c = d + LeftRotate(0xa679438e + c + Blend(b, a, d) + input[7], 17);
-    b = c + LeftRotate(0x49b40821 + b + Blend(a, d, c), 22);
+    a = Step1<7>(a, b, c, d, 0xd76aa478, input[0]);
+    d = Step1<12>(d, a, b, c, 0xe8c7b756, input[1]);
+    c = Step1<17>(c, d, a, b, 0x242070db, input[2]);
+    b = Step1<22>(b, c, d, a, 0xc1bdceee, input[3]);
+    a = Step1<7>(a, b, c, d, 0xf57c0faf, input[4]);
+    d = Step1<12>(d, a, b, c, 0x4787c62a, input[5]);
+    c = Step1<17>(c, d, a, b, 0xa8304613, input[6]);
+    b = Step1<22>(b, c, d, a, 0xfd469501);
+    a = Step1<7>(a, b, c, d, 0x698098d8);
+    d = Step1<12>(d, a, b, c, 0x8b44f7af);
+    c = Step1<17>(c, d, a, b, 0xffff5bb1);
+    b = Step1<22>(b, c, d, a, 0x895cd7be);
+    a = Step1<7>(a, b, c, d, 0x6b901122);
+    d = Step1<12>(d, a, b, c, 0xfd987193);
+    c = Step1<17>(c, d, a, b, 0xa679438e, input[7]);
+    b = Step1<22>(b, c, d, a, 0x49b40821);
 
-    a = b + LeftRotate(0xf61e2562 + a + Blend(c, b, d) + input[1], 5);
-    d = a + LeftRotate(0xc040b340 + d + Blend(b, a, c) + input[6], 9);
-    c = d + LeftRotate(0x265e5a51 + c + Blend(a, d, b), 14);
-    b = c + LeftRotate(0xe9b6c7aa + b + Blend(d, c, a) + input[0], 20);
-    a = b + LeftRotate(0xd62f105d + a + Blend(c, b, d) + input[5], 5);
-    d = a + LeftRotate(0x02441453 + d + Blend(b, a, c), 9);
-    c = d + LeftRotate(0xd8a1e681 + c + Blend(a, d, b), 14);
-    b = c + LeftRotate(0xe7d3fbc8 + b + Blend(d, c, a) + input[4], 20);
-    a = b + LeftRotate(0x21e1cde6 + a + Blend(c, b, d), 5);
-    d = a + LeftRotate(0xc33707d6 + d + Blend(b, a, c) + input[7], 9);
-    c = d + LeftRotate(0xf4d50d87 + c + Blend(a, d, b) + input[3], 14);
-    b = c + LeftRotate(0x455a14ed + b + Blend(d, c, a), 20);
-    a = b + LeftRotate(0xa9e3e905 + a + Blend(c, b, d), 5);
-    d = a + LeftRotate(0xfcefa3f8 + d + Blend(b, a, c) + input[2], 9);
-    c = d + LeftRotate(0x676f02d9 + c + Blend(a, d, b), 14);
-    b = c + LeftRotate(0x8d2a4c8a + b + Blend(d, c, a), 20);
+    a = Step2<5>(a, d, b, c, 0xf61e2562, input[1]);
+    d = Step2<9>(d, c, a, b, 0xc040b340, input[6]);
+    c = Step2<14>(c, b, d, a, 0x265e5a51);
+    b = Step2<20>(b, a, c, d, 0xe9b6c7aa, input[0]);
+    a = Step2<5>(a, d, b, c, 0xd62f105d, input[5]);
+    d = Step2<9>(d, c, a, b, 0x02441453);
+    c = Step2<14>(c, b, d, a, 0xd8a1e681);
+    b = Step2<20>(b, a, c, d, 0xe7d3fbc8, input[4]);
+    a = Step2<5>(a, d, b, c, 0x21e1cde6);
+    d = Step2<9>(d, c, a, b, 0xc33707d6, input[7]);
+    c = Step2<14>(c, b, d, a, 0xf4d50d87, input[3]);
+    b = Step2<20>(b, a, c, d, 0x455a14ed);
+    a = Step2<5>(a, d, b, c, 0xa9e3e905);
+    d = Step2<9>(d, c, a, b, 0xfcefa3f8, input[2]);
+    c = Step2<14>(c, b, d, a, 0x676f02d9);
+    b = Step2<20>(b, a, c, d, 0x8d2a4c8a);
 
-    a = b + LeftRotate(0xfffa3942 + a + Xor(b, c, d) + input[5], 4);
-    d = a + LeftRotate(0x8771f681 + d + Xor(a, b, c), 11);
-    c = d + LeftRotate(0x6d9d6122 + c + Xor(d, a, b), 16);
-    b = c + LeftRotate(0xfde5380c + b + Xor(c, d, a) + input[7], 23);
-    a = b + LeftRotate(0xa4beea44 + a + Xor(b, c, d) + input[1], 4);
-    d = a + LeftRotate(0x4bdecfa9 + d + Xor(a, b, c) + input[4], 11);
-    c = d + LeftRotate(0xf6bb4b60 + c + Xor(d, a, b), 16);
-    b = c + LeftRotate(0xbebfbc70 + b + Xor(c, d, a), 23);
-    a = b + LeftRotate(0x289b7ec6 + a + Xor(b, c, d), 4);
-    d = a + LeftRotate(0xeaa127fa + d + Xor(a, b, c) + input[0], 11);
-    c = d + LeftRotate(0xd4ef3085 + c + Xor(d, a, b) + input[3], 16);
-    b = c + LeftRotate(0x04881d05 + b + Xor(c, d, a) + input[6], 23);
-    a = b + LeftRotate(0xd9d4d039 + a + Xor(b, c, d), 4);
-    d = a + LeftRotate(0xe6db99e5 + d + Xor(a, b, c), 11);
-    c = d + LeftRotate(0x1fa27cf8 + c + Xor(d, a, b), 16);
-    b = c + LeftRotate(0xc4ac5665 + b + Xor(c, d, a) + input[2], 23);
+    a = Step3<4>(a, b, c, d, 0xfffa3942, input[5]);
+    d = Step3<11>(d, a, b, c, 0x8771f681);
+    c = Step3<16>(c, d, a, b, 0x6d9d6122);
+    b = Step3<23>(b, c, d, a, 0xfde5380c, input[7]);
+    a = Step3<4>(a, b, c, d, 0xa4beea44, input[1]);
+    d = Step3<11>(d, a, b, c, 0x4bdecfa9, input[4]);
+    c = Step3<16>(c, d, a, b, 0xf6bb4b60);
+    b = Step3<23>(b, c, d, a, 0xbebfbc70);
+    a = Step3<4>(a, b, c, d, 0x289b7ec6);
+    d = Step3<11>(d, a, b, c, 0xeaa127fa, input[0]);
+    c = Step3<16>(c, d, a, b, 0xd4ef3085, input[3]);
+    b = Step3<23>(b, c, d, a, 0x04881d05, input[6]);
+    a = Step3<4>(a, b, c, d, 0xd9d4d039);
+    d = Step3<11>(d, a, b, c, 0xe6db99e5);
+    c = Step3<16>(c, d, a, b, 0x1fa27cf8);
+    b = Step3<23>(b, c, d, a, 0xc4ac5665, input[2]);
 
-    a = b + LeftRotate(0xf4292244 + a + I(c, b, d) + input[0], 6);
-    d = a + LeftRotate(0x432aff97 + d + I(b, a, c), 10);
-    c = d + LeftRotate(0xab9423a7 + c + I(a, d, b) + input[7], 15);
-    b = c + LeftRotate(0xfc93a039 + b + I(d, c, a) + input[5], 21);
-    a = b + LeftRotate(0x655b59c3 + a + I(c, b, d), 6);
-    d = a + LeftRotate(0x8f0ccc92 + d + I(b, a, c) + input[3], 10);
-    c = d + LeftRotate(0xffeff47d + c + I(a, d, b), 15);
-    b = c + LeftRotate(0x85845dd1 + b + I(d, c, a) + input[1], 21);
-    a = b + LeftRotate(0x6fa87e4f + a + I(c, b, d), 6);
-    d = a + LeftRotate(0xfe2ce6e0 + d + I(b, a, c), 10);
-    c = d + LeftRotate(0xa3014314 + c + I(a, d, b) + input[6], 15);
-    b = c + LeftRotate(0x4e0811a1 + b + I(d, c, a), 21);
-    a = b + LeftRotate(0xf7537e82 + a + I(c, b, d) + input[4], 6);
-    d = a + LeftRotate(0xbd3af235 + d + I(b, a, c), 10);
-    c = d + LeftRotate(0x2ad7d2bb + c + I(a, d, b) + input[2], 15);
-    b = c + LeftRotate(0xeb86d391 + b + I(d, c, a), 21);
+    a = Step4<6>(a, b, c, d, 0xf4292244, input[0]);
+    d = Step4<10>(d, a, b, c, 0x432aff97);
+    c = Step4<15>(c, d, a, b, 0xab9423a7, input[7]);
+    b = Step4<21>(b, c, d, a, 0xfc93a039, input[5]);
+    a = Step4<6>(a, b, c, d, 0x655b59c3);
+    d = Step4<10>(d, a, b, c, 0x8f0ccc92, input[3]);
+    c = Step4<15>(c, d, a, b, 0xffeff47d);
+    b = Step4<21>(b, c, d, a, 0x85845dd1, input[1]);
+    a = Step4<6>(a, b, c, d, 0x6fa87e4f);
+    d = Step4<10>(d, a, b, c, 0xfe2ce6e0);
+    c = Step4<15>(c, d, a, b, 0xa3014314, input[6]);
+    b = Step4<21>(b, c, d, a, 0x4e0811a1);
+    a = Step4<6>(a, b, c, d, 0xf7537e82, input[4]);
+    d = Step4<10>(d, a, b, c, 0xbd3af235);
+    c = Step4<15>(c, d, a, b, 0x2ad7d2bb, input[2]);
+    b = Step4<21>(b, c, d, a, 0xeb86d391);
 
     output[0] = 0x67452301 + a;
     output[1] = 0xefcdab89 + b;
