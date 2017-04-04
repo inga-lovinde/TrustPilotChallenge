@@ -74,7 +74,7 @@
                         sourceChars == ToOrderedChars(ToString(phraseBytes)),
                         $"StringsProcessor produced incorrect anagram: {ToString(phraseBytes)}");
 
-                    var hashVector = ComputeHashVector(phraseBytes);
+                    var hashVector = MD5Digest.Compute(phraseBytes);
                     if (Array.IndexOf(expectedHashesAsVectors, hashVector) >= 0)
                     {
                         var phrase = ToString(phraseBytes);
@@ -115,12 +115,6 @@
                              .Select(x => ChangeEndianness(hex.Substring(x, 8)))
                              .Select(hexLe => Convert.ToUInt32(hexLe, 16))
                              .ToArray();
-        }
-
-        // Bouncy Castle is used instead of standard .NET methods for performance reasons
-        private static Vector<uint> ComputeHashVector(Phrase input)
-        {
-            return new Vector<uint>(MD5Digest.Compute(input));
         }
 
         private static string VectorToHexadecimalString(Vector<uint> hash)
