@@ -2,6 +2,9 @@
 
 #include "md5.h"
 
+#include "intrin.h"
+#include "immintrin.h"
+
 #pragma unmanaged
 
 inline unsigned int Blend(unsigned int a, unsigned int b, unsigned int x)
@@ -21,7 +24,7 @@ inline unsigned int I(unsigned int a, unsigned int b, unsigned int c)
 
 inline unsigned int LeftRotate(unsigned int x, int left)
 {
-    return (x << left) | (x >> (32 - left));
+    return _rotl(x, left);
 }
 
 void md5(unsigned int * input, unsigned int* output)
