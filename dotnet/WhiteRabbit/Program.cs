@@ -49,10 +49,6 @@
                 .Select(hash => new Vector<uint>(HexadecimalStringToUnsignedIntArray(hash)))
                 .ToArray();
 
-#if DEBUG
-            var anagramsBag = new ConcurrentBag<string>();
-#endif
-
             var processor = new StringsProcessor(
                 Encoding.ASCII.GetBytes(sourcePhrase),
                 maxWordsInPhrase,
@@ -70,41 +66,24 @@
             processor.GeneratePhrases()
                 .ForAll(phraseBytes =>
                 {
-                    Debug.Assert(
-                        sourceChars == ToOrderedChars(ToString(phraseBytes)),
-                        $"StringsProcessor produced incorrect anagram: {ToString(phraseBytes)}");
-
-                    var hashVector = MD5Digest.Compute(phraseBytes);
-                    if (Array.IndexOf(expectedHashesAsVectors, hashVector) >= 0)
+                    var hashVectors = MD5Digest.Compute(phraseBytes);
+                    for (var i = 0; i < Constants.PhrasesPerSet; i++)
                     {
-                        var phrase = ToString(phraseBytes);
-                        var hash = VectorToHexadecimalString(hashVector);
-                        Console.WriteLine($"Found phrase for {hash}: {phrase}; time from start is {stopwatch.Elapsed}");
-                    }
+                        Debug.Assert(
+                            sourceChars == ToOrderedChars(ToString(phraseBytes, i)),
+                            $"StringsProcessor produced incorrect anagram: {ToString(phraseBytes, i)}");
 
-#if DEBUG
-                    anagramsBag.Add(ToString(phraseBytes));
-#endif
+                        if (Array.IndexOf(expectedHashesAsVectors, hashVectors[i]) >= 0)
+                        {
+                            var phrase = ToString(phraseBytes, i);
+                            var hash = VectorToHexadecimalString(hashVectors[i]);
+                            Console.WriteLine($"Found phrase for {hash}: {phrase}; time from start is {stopwatch.Elapsed}");
+                        }
+                    }
                 });
 
             Console.WriteLine($"Done; time from start: {stopwatch.Elapsed}");
 
-#if DEBUG
-            var anagramsArray = anagramsBag.ToArray();
-            var anagramsSet = new HashSet<string>(anagramsArray);
-            Array.Sort(anagramsArray);
-
-            Console.WriteLine("All anagrams:");
-            for (var i = 0; i < anagramsArray.Length; i++)
-            {
-                Console.WriteLine(anagramsArray[i]);
-            }
-
-            // Duplicate anagrams are expected, as e.g. "norway spoils tut tut" will be taken twice:
-            // as "norway1 spoils2 tut3 tut4" and "norway1 spoils2 tut4 tut3"
-            // (in addition to e.g. "norway1 tut3 spoils2 tut4")
-            Console.WriteLine($"Total anagrams count: {anagramsArray.Length}; unique anagrams: {anagramsSet.Count}; time from start: {stopwatch.Elapsed}");
-#endif
         }
 
         // Code taken from http://stackoverflow.com/a/321404/831314
@@ -131,9 +110,9 @@
             return hex.Substring(6, 2) + hex.Substring(4, 2) + hex.Substring(2, 2) + hex.Substring(0, 2);
         }
 
-        private static string ToString(Phrase phrase)
+        private static string ToString(PhraseSet phrase, int offset)
         {
-            return Encoding.ASCII.GetString(phrase.GetBytes());
+            return Encoding.ASCII.GetString(phrase.GetBytes(offset));
         }
 
         private static IEnumerable<byte[]> ReadInput()

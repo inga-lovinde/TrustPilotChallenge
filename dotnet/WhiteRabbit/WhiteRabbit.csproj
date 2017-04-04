@@ -58,9 +58,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="ByteArrayEqualityComparer.cs" />
+    <Compile Include="Constants.cs" />
     <Compile Include="Flattener.cs" />
     <Compile Include="MD5Digest.cs" />
-    <Compile Include="Phrase.cs" />
+    <Compile Include="PhraseSet.cs" />
     <Compile Include="PrecomputedPermutationsGenerator.cs" />
     <Compile Include="PermutationsGenerator.cs" />
     <Compile Include="StringsProcessor.cs" />

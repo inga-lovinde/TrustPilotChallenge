@@ -7,24 +7,30 @@
     {
         private static PermutationsGenerator.Permutation[][] Permutations { get; } = new[]
         {
-            PermutationsGenerator.HamiltonianPermutations(0).ToArray(),
-            PermutationsGenerator.HamiltonianPermutations(1).ToArray(),
-            PermutationsGenerator.HamiltonianPermutations(2).ToArray(),
-            PermutationsGenerator.HamiltonianPermutations(3).ToArray(),
-            PermutationsGenerator.HamiltonianPermutations(4).ToArray(),
-            PermutationsGenerator.HamiltonianPermutations(5).ToArray(),
-            PermutationsGenerator.HamiltonianPermutations(6).ToArray(),
-            PermutationsGenerator.HamiltonianPermutations(7).ToArray(),
+            GeneratePermutations(0),
+            GeneratePermutations(1),
+            GeneratePermutations(2),
+            GeneratePermutations(3),
+            GeneratePermutations(4),
+            GeneratePermutations(5),
+            GeneratePermutations(6),
+            GeneratePermutations(7),
         };
 
-        public static IEnumerable<PermutationsGenerator.Permutation> HamiltonianPermutations(int n)
+        public static PermutationsGenerator.Permutation[] HamiltonianPermutations(int n)
         {
-            if (n > 9)
+            return Permutations[n];
+        }
+
+        private static PermutationsGenerator.Permutation[] GeneratePermutations(int n)
+        {
+            var result = PermutationsGenerator.HamiltonianPermutations(n).ToArray();
+            if (result.Length % Constants.PhrasesPerSet == 0)
             {
-                return PermutationsGenerator.HamiltonianPermutations(n);
+                return result;
             }
 
-            return Permutations[n];
+            return result.Concat(Enumerable.Repeat(result[0], Constants.PhrasesPerSet - (result.Length % Constants.PhrasesPerSet))).ToArray();
         }
     }
 }

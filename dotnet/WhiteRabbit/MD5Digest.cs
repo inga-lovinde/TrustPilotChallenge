@@ -14,16 +14,21 @@ namespace WhiteRabbit
     internal static class MD5Digest
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe Vector<uint> Compute(Phrase input)
+        public static unsafe Vector<uint>[] Compute(PhraseSet input)
         {
-            var result = stackalloc uint[4];
-            MD5Unmanaged.ComputeMD5(input.Buffer, result);
-            return new Vector<uint>(new[] {
-                result[0],
-                result[1],
-                result[2],
-                result[3],
-            });
+            var rawResult = new uint[4 * Constants.PhrasesPerSet];
+            fixed (uint* resultPointer = rawResult)
+            {
+                MD5Unmanaged.ComputeMD5(input.Buffer, resultPointer);
+            }
+
+            var result = new Vector<uint>[Constants.PhrasesPerSet];
+            for (var i = 0; i < Constants.PhrasesPerSet; i++)
+            {
+                result[i] = new Vector<uint>(rawResult, 4 * i);
+            }
+
+            return result;
         }
     }
 }

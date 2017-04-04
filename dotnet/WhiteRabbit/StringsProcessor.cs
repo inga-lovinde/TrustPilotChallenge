@@ -52,7 +52,7 @@
 #if SINGLE_THREADED
         public IEnumerable<byte[]> GeneratePhrases()
 #else
-        public ParallelQuery<Phrase> GeneratePhrases()
+        public ParallelQuery<PhraseSet> GeneratePhrases()
 #endif
         {
             // task of finding anagrams could be reduced to the task of finding sequences of dictionary vectors with the target sum
@@ -85,11 +85,13 @@
             return words;
         }
 
-        private IEnumerable<Phrase> ConvertWordsToPhrases(byte[][] words)
+        private IEnumerable<PhraseSet> ConvertWordsToPhrases(byte[][] words)
         {
-            foreach (var permutation in PrecomputedPermutationsGenerator.HamiltonianPermutations(words.Length))
+            var permutations = PrecomputedPermutationsGenerator.HamiltonianPermutations(words.Length);
+            var permutationsLength = permutations.Length;
+            for (var i = 0; i < permutationsLength; i++)
             {
-                yield return new Phrase(words, permutation, this.NumberOfCharacters);
+                yield return new PhraseSet(words, permutations, i, this.NumberOfCharacters);
             }
         }
     }
