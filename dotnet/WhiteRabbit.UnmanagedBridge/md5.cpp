@@ -80,7 +80,6 @@ inline MD5Word Step4(MD5Word a, MD5Word b, MD5Word c, MD5Word d, MD5Word k)
 
 void md5(unsigned int * input, unsigned int * output)
 {
-
     MD5Word a = 0x67452301;
     MD5Word b = 0xefcdab89;
     MD5Word c = 0x98badcfe;
@@ -150,13 +149,7 @@ void md5(unsigned int * input, unsigned int * output)
     c = Step4<15>(c, d, a, b, 0xa3014314, input[6]);
     b = Step4<21>(b, c, d, a, 0x4e0811a1);
     a = Step4<6>(a, b, c, d, 0xf7537e82, input[4]);
-    d = Step4<10>(d, a, b, c, 0xbd3af235);
-    c = Step4<15>(c, d, a, b, 0x2ad7d2bb, input[2]);
-    b = Step4<21>(b, c, d, a, 0xeb86d391);
 
     output[0] = 0x67452301 + a;
-    output[1] = 0xefcdab89 + b;
-    output[2] = 0x98badcfe + c;
-    output[3] = 0x10325476 + d;
 }
 #pragma managed

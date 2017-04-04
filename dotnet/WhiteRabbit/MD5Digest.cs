@@ -4,28 +4,16 @@ using WhiteRabbitUnmanagedBridge;
 
 namespace WhiteRabbit
 {
-    /**
-     * Code taken from BouncyCastle and optimized for specific constraints (e.g. input is always larger than 4 bytes and smaller than 52 bytes).
-     * Further optimization: input could be assumed to be smaller than 27 bytes (original phrase contains 18 letters, so that allows anagrams of 9 words)
-     * base implementation of MD4 family style digest as outlined in
-     * "Handbook of Applied Cryptography", pages 344 - 347.
-     * implementation of MD5 as outlined in "Handbook of Applied Cryptography", pages 346 - 347.
-     */
     internal static class MD5Digest
     {
+        // It only returns first component of MD5 hash
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe Vector<uint>[] Compute(PhraseSet input)
+        public static unsafe uint[] Compute(PhraseSet input)
         {
-            var rawResult = new uint[4 * Constants.PhrasesPerSet];
-            fixed (uint* resultPointer = rawResult)
+            var result = new uint[Constants.PhrasesPerSet];
+            fixed (uint* resultPointer = result)
             {
                 MD5Unmanaged.ComputeMD5(input.Buffer, resultPointer);
-            }
-
-            var result = new Vector<uint>[Constants.PhrasesPerSet];
-            for (var i = 0; i < Constants.PhrasesPerSet; i++)
-            {
-                result[i] = new Vector<uint>(rawResult, 4 * i);
             }
 
             return result;

@@ -7,6 +7,7 @@
     using System.Diagnostics;
     using System.Linq;
     using System.Numerics;
+    using System.Security.Cryptography;
     using System.Text;
 
     /// <summary>
@@ -49,6 +50,8 @@
                 .Select(hash => new Vector<uint>(HexadecimalStringToUnsignedIntArray(hash)))
                 .ToArray();
 
+            var expectedHashesFirstComponents = expectedHashesAsVectors.Select(vector => vector[0]).ToArray();
+
             var processor = new StringsProcessor(
                 Encoding.ASCII.GetBytes(sourcePhrase),
                 maxWordsInPhrase,
@@ -64,19 +67,19 @@
             stopwatch.Restart();
 
             processor.GeneratePhrases()
-                .ForAll(phraseBytes =>
+                .ForAll(phraseSet =>
                 {
-                    var hashVectors = MD5Digest.Compute(phraseBytes);
+                    var hashesFirstComponents = MD5Digest.Compute(phraseSet);
                     for (var i = 0; i < Constants.PhrasesPerSet; i++)
                     {
                         Debug.Assert(
-                            sourceChars == ToOrderedChars(ToString(phraseBytes, i)),
-                            $"StringsProcessor produced incorrect anagram: {ToString(phraseBytes, i)}");
+                            sourceChars == ToOrderedChars(ToString(phraseSet, i)),
+                            $"StringsProcessor produced incorrect anagram: {ToString(phraseSet, i)}");
 
-                        if (Array.IndexOf(expectedHashesAsVectors, hashVectors[i]) >= 0)
+                        if (Array.IndexOf(expectedHashesFirstComponents, hashesFirstComponents[i]) >= 0)
                         {
-                            var phrase = ToString(phraseBytes, i);
-                            var hash = VectorToHexadecimalString(hashVectors[i]);
+                            var phrase = ToString(phraseSet, i);
+                            var hash = ComputeFullMD5(phrase);
                             Console.WriteLine($"Found phrase for {hash}: {phrase}; time from start is {stopwatch.Elapsed}");
                         }
                     }
@@ -96,13 +99,15 @@
                              .ToArray();
         }
 
-        private static string VectorToHexadecimalString(Vector<uint> hash)
+        // We can afford to spend some time here; this code will only run for matched phrases (and for one in several billion non-matched)
+        private static string ComputeFullMD5(string phrase)
         {
-            var components = Enumerable.Range(0, 4)
-                .Select(i => hash[i].ToString("x8"))
-                .Select(ChangeEndianness);
-
-            return string.Concat(components);
+            var phraseBytes = Encoding.ASCII.GetBytes(phrase);
+            using (var hashAlgorithm = new MD5CryptoServiceProvider())
+            {
+                var resultBytes = hashAlgorithm.ComputeHash(phraseBytes);
+                return string.Concat(resultBytes.Select(b => b.ToString("x2")));
+            }
         }
 
         private static string ChangeEndianness(string hex)
