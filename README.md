@@ -43,17 +43,17 @@ Anagrams generation is not parallelized, as even single-threaded performance for
 
 Multi-threaded performance with RyuJIT (.NET 4.6, 64-bit system) on quad-core Sandy Bridge @2.8GHz is as follows (excluding initialization time of 0.2 seconds):
 
-* If only phrases of at most 4 words are allowed, then it takes **1.1 seconds** to find and check all 7433016 anagrams; **all hashes are solved in first 0.2 seconds**.
+* If only phrases of at most 4 words are allowed, then it takes **1.1 seconds** to find and check all 7,433,016 anagrams; **all hashes are solved in first 0.2 seconds**.
 
-* If phrases of 5 words are allowed as well, then it takes 2:45 minutes to find and check all 1348876896 anagrams; all hashes are solved in first 4 seconds.
+* If phrases of 5 words are allowed as well, then it takes 2:45 minutes to find and check all 1,348,876,896 anagrams; all hashes are solved in first 4 seconds.
 
-* If phrases of 6 words are allowed as well, then "more difficult" hash is solved in 3.5 seconds, "easiest" in 21 seconds, and "hard" in 54 seconds.
+* If phrases of 6 words are allowed as well, then it takes less than 2 hours to find and check all 58,837,302,096 anagrams; "more difficult" hash is solved in 3.5 seconds, "easiest" in 21 seconds, and "hard" in 54 seconds.
 
-* If phrases of 7 words are allowed as well, then "more difficult" hash is solved in 20 seconds, "easiest" in less than 2.5 minutes, and "hard" in 6:45 minutes.
+* If phrases of 7 words are allowed as well, then it takes 75 seconds to count all 1,108,328,708,976 anagrams, and around 40 hours to find and check all these anagrams; "more difficult" hash is solved in 20 seconds, "easiest" in less than 2.5 minutes, and "hard" in 6:45 minutes.
 
 Note that all measurements were done on a Release build; Debug build is significantly slower.
 
-For comparison, certain other solutions available on GitHub seem to require 3 hours to find all 3-word anagrams. This solution is faster by 5-7 orders of magnitude (it finds and checks all 4-word anagrams in 1/2000th fraction of time required for other solution just to find all 3-word anagrams, with no MD5 calculations).
+For comparison, certain other solutions available on GitHub seem to require 3 hours to find all 3-word anagrams. This solution is faster by 6-7 orders of magnitude (it finds and checks all 4-word anagrams in 1/10000th fraction of time required for other solution just to find all 3-word anagrams, with no MD5 calculations).
 
 Conditional compilation symbols
 ===============================
@@ -111,4 +111,4 @@ There is no need in processing all the words that are too large to be useful at 
 11. Filtering the original dictionary (e.g. throwing away all single-letter words) does not really improve the performance, thanks to the optimizations mentioned in notes 7-9.
 This solution finds all anagrams, including those with single-letter words.
 
-12. MD5 computation could be further optimized by leveraging CPU extensions; however, it could not be done with current .NET (see readme for https://github.com/penartur/TrustPilotChallenge/tree/simd-md5)
+12. MD5 computation could be further optimized by leveraging CPU extensions (which would reduce runtime by 5x to 10x); however, it could not be done with current .NET (see readme for https://github.com/penartur/TrustPilotChallenge/tree/simd-md5)

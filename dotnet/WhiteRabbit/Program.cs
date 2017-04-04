@@ -60,6 +60,11 @@
 
             Console.WriteLine($"Initialization complete; time from start: {stopwatch.Elapsed}");
 
+#if DEBUG
+            var fastPhrasesCount = processor.GetPhrasesCount();
+            Console.WriteLine($"Number of phrases: {fastPhrasesCount}; time from start: {stopwatch.Elapsed}");
+#endif
+
             stopwatch.Restart();
 
             processor.GeneratePhrases()

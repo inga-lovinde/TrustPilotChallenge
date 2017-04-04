@@ -65,6 +65,14 @@
                 .SelectMany(this.ConvertWordsToPhrases);
         }
 
+        public long GetPhrasesCount()
+        {
+            return this.VectorsProcessor.GenerateSequences()
+                .Select(this.ConvertVectorsToWords)
+                .SelectMany(Flattener.Flatten)
+                .Sum(words => (long)PrecomputedPermutationsGenerator.HamiltonianPermutations(words.Length).Count());
+        }
+
         private byte[][][] ConvertVectorsToWords(int[] vectors)
         {
             var length = vectors.Length;
