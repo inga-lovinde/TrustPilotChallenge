@@ -89,7 +89,7 @@
         {
             var permutations = PrecomputedPermutationsGenerator.HamiltonianPermutations(words.Length);
             var permutationsLength = permutations.Length;
-            for (var i = 0; i < permutationsLength; i++)
+            for (var i = 0; i < permutationsLength; i += Constants.PhrasesPerSet)
             {
                 yield return new PhraseSet(words, permutations, i, this.NumberOfCharacters);
             }

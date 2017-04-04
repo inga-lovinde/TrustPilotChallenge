@@ -15,7 +15,7 @@
                 {
                     var permutation = permutations[offset + i];
                     var startPointer = bufferPointer + i * 8;
-                    byte[] currentWord = words[permutations[offset][0]];
+                    byte[] currentWord = words[permutation[0]];
                     var j = 0;
                     var wordIndex = 0;
                     var currentPointer = (byte*)startPointer;
