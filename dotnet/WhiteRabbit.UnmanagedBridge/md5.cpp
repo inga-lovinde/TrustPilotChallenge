@@ -18,17 +18,21 @@ typedef __m256i MD5Vector;
 #define OP_BLEND(a, b, x) OP_OR(OP_AND(x, b), OP_ANDNOT(x, a))
 
 #define CREATE_VECTOR(a) _mm256_set1_epi32(a)
-#define CREATE_VECTOR_FROM_INPUT(input, offset) _mm256_set1_epi32(input[offset])
+#define CREATE_VECTOR_FROM_INPUT(input, offset) _mm256_set_epi32( \
+    input[offset + 0 * 8], \
+    input[offset + 1 * 8], \
+    input[offset + 2 * 8], \
+    input[offset + 3 * 8], \
+    input[offset + 4 * 8], \
+    input[offset + 5 * 8], \
+    input[offset + 6 * 8], \
+    input[offset + 7 * 8])
 
 #define WRITE_TO_OUTPUT(a, output) \
-    output[0] = a.m256i_u32[0]; \
-    output[1] = a.m256i_u32[1]; \
-    output[2] = a.m256i_u32[2]; \
-    output[3] = a.m256i_u32[3]; \
-    output[4] = a.m256i_u32[4]; \
-    output[5] = a.m256i_u32[5]; \
-    output[6] = a.m256i_u32[6]; \
-    output[7] = a.m256i_u32[7];
+    ((unsigned __int64*)output)[0] = a.m256i_u64[0]; \
+    ((unsigned __int64*)output)[1] = a.m256i_u64[1]; \
+    ((unsigned __int64*)output)[2] = a.m256i_u64[2]; \
+    ((unsigned __int64*)output)[3] = a.m256i_u64[3];
 
 #elif SIMD
 
@@ -41,6 +45,7 @@ typedef __m128i MD5Vector;
 #define OP_ADD(a, b) _mm_add_epi32(a, b)
 #define OP_ROT(a, r) OP_OR(_mm_slli_epi32(a, r), _mm_srli_epi32(a, 32 - (r)))
 #define OP_BLEND(a, b, x) OP_OR(OP_AND(x, b), OP_ANDNOT(x, a))
+//#define OP_BLEND(a, b, x) OP_XOR(a, OP_AND(x, OP_XOR(b, a)))
 
 #define CREATE_VECTOR(a) _mm_set1_epi32(a)
 #define CREATE_VECTOR_FROM_INPUT(input, offset) _mm_set_epi32( \
@@ -158,19 +163,21 @@ static const MD5Parameters Parameters = {
 #define Xor(a, b, c) OP_XOR(a, OP_XOR(b, c))
 #define I(a, b, c) OP_XOR(a, OP_OR(b, OP_NEG(c)))
 
-#define LeftRotate(r, x) OP_ROT(x, r)
+#define StepOuter(r, a, b, x) \
+    a = x; \
+    a = OP_ADD(b, OP_ROT(a, r));
 
-#define Step1(r, a, b, c, d, k, w) OP_ADD(b, LeftRotate(r, OP_ADD(Blend(d, c, b), OP_ADD(CREATE_VECTOR(k), OP_ADD(a, w)))))
-#define Step1E(r, a, b, c, d, k)   OP_ADD(b, LeftRotate(r, OP_ADD(Blend(d, c, b), OP_ADD(CREATE_VECTOR(k), a))))
+#define Step1(r, a, b, c, d, k, w) StepOuter(r, a, b, OP_ADD(Blend(d, c, b), OP_ADD(CREATE_VECTOR(k), OP_ADD(a, w))))
+#define Step1E(r, a, b, c, d, k)   StepOuter(r, a, b, OP_ADD(Blend(d, c, b), OP_ADD(CREATE_VECTOR(k), a)))
 
-#define Step2(r, a, b, c, d, k, w) OP_ADD(c, LeftRotate(r, OP_ADD(Blend(d, c, b), OP_ADD(CREATE_VECTOR(k), OP_ADD(a, w)))))
-#define Step2E(r, a, b, c, d, k)   OP_ADD(c, LeftRotate(r, OP_ADD(Blend(d, c, b), OP_ADD(CREATE_VECTOR(k), a))))
+#define Step2(r, a, b, c, d, k, w) StepOuter(r, a, c, OP_ADD(Blend(d, c, b), OP_ADD(CREATE_VECTOR(k), OP_ADD(a, w))))
+#define Step2E(r, a, b, c, d, k)   StepOuter(r, a, c, OP_ADD(Blend(d, c, b), OP_ADD(CREATE_VECTOR(k), a)))
 
-#define Step3(r, a, b, c, d, k, w) OP_ADD(b, LeftRotate(r, OP_ADD(Xor(b, c, d), OP_ADD(CREATE_VECTOR(k), OP_ADD(a, w)))))
-#define Step3E(r, a, b, c, d, k)   OP_ADD(b, LeftRotate(r, OP_ADD(Xor(b, c, d), OP_ADD(CREATE_VECTOR(k), a))))
+#define Step3(r, a, b, c, d, k, w) StepOuter(r, a, b, OP_ADD(Xor(b, c, d), OP_ADD(CREATE_VECTOR(k), OP_ADD(a, w))))
+#define Step3E(r, a, b, c, d, k)   StepOuter(r, a, b, OP_ADD(Xor(b, c, d), OP_ADD(CREATE_VECTOR(k), a)))
 
-#define Step4(r, a, b, c, d, k, w) OP_ADD(b, LeftRotate(r, OP_ADD(I(c, b, d), OP_ADD(CREATE_VECTOR(k), OP_ADD(a, w)))))
-#define Step4E(r, a, b, c, d, k)   OP_ADD(b, LeftRotate(r, OP_ADD(I(c, b, d), OP_ADD(CREATE_VECTOR(k), a))))
+#define Step4(r, a, b, c, d, k, w) StepOuter(r, a, b, OP_ADD(I(c, b, d), OP_ADD(CREATE_VECTOR(k), OP_ADD(a, w))))
+#define Step4E(r, a, b, c, d, k)   StepOuter(r, a, b, OP_ADD(I(c, b, d), OP_ADD(CREATE_VECTOR(k), a)))
 
 void md5(unsigned __int32 * input, unsigned __int32 * output)
 {

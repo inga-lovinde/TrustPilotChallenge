@@ -1,9 +1,8 @@
-﻿using System.Numerics;
-using System.Runtime.CompilerServices;
-using WhiteRabbitUnmanagedBridge;
-
-namespace WhiteRabbit
+﻿namespace WhiteRabbit
 {
+    using System.Runtime.CompilerServices;
+    using WhiteRabbitUnmanagedBridge;
+
     internal static class MD5Digest
     {
         // It only returns first component of MD5 hash
