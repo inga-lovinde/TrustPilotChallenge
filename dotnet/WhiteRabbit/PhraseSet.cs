@@ -15,22 +15,23 @@
                 {
                     var permutation = permutations[offset + i];
                     var startPointer = bufferPointer + i * 8;
-                    byte[] currentWord = words[permutation[0]];
+                    byte[] currentWord;
                     var j = 0;
                     var wordIndex = 0;
                     var currentPointer = (byte*)startPointer;
                     byte* lastPointer = currentPointer + length;
+
                     for (; currentPointer < lastPointer; currentPointer++)
                     {
-                        if (j >= currentWord.Length)
-                        {
-                            j = 0;
-                            wordIndex++;
-                            currentWord = words[permutation[wordIndex]];
-                        }
-
+                        currentWord = words[permutation[wordIndex]];
                         *currentPointer = currentWord[j];
+
                         j++;
+
+                        // 0xffffffff if greater than or equal, 0 if less than
+                        var comparisonResult = unchecked((int)((((uint)j - (uint)currentWord.Length) >> 31) - 1));
+                        j = (comparisonResult & 0) | (~comparisonResult & j);
+                        wordIndex = (comparisonResult & (wordIndex + 1)) | (~comparisonResult & wordIndex);
                     }
                     *currentPointer = 128;
 
