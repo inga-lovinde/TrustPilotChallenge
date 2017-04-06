@@ -50,7 +50,7 @@
         private int NumberOfCharacters { get; }
 
 #if SINGLE_THREADED
-        public IEnumerable<byte[]> GeneratePhrases()
+        public IEnumerable<PhraseSet> GeneratePhrases()
 #else
         public ParallelQuery<PhraseSet> GeneratePhrases()
 #endif
