@@ -5,7 +5,7 @@
     {
         public fixed uint Buffer[8 * Constants.PhrasesPerSet];
 
-        public PhraseSet(byte[][] words, PermutationsGenerator.Permutation[] permutations, int offset, int numberOfCharacters)
+        public PhraseSet(byte[][] words, int[][] permutations, int offset, int numberOfCharacters)
         {
             fixed (uint* bufferPointer = this.Buffer)
             {

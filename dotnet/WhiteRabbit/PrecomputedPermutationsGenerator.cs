@@ -5,17 +5,19 @@
 
     internal static class PrecomputedPermutationsGenerator
     {
-        private static PermutationsGenerator.Permutation[][] Permutations { get; } = Enumerable.Range(0, 8).Select(GeneratePermutations).ToArray();
+        private static int[][][] Permutations { get; } = Enumerable.Range(0, 8).Select(GeneratePermutations).ToArray();
 
         private static long[] PermutationsNumbers { get; } = GeneratePermutationsNumbers().Take(19).ToArray();
 
-        public static PermutationsGenerator.Permutation[] HamiltonianPermutations(int n) => Permutations[n];
+        public static int[][] HamiltonianPermutations(int n) => Permutations[n];
 
         public static long GetPermutationsNumber(int n) => PermutationsNumbers[n];
 
-        private static PermutationsGenerator.Permutation[] GeneratePermutations(int n)
+        private static int[][] GeneratePermutations(int n)
         {
-            var result = PermutationsGenerator.HamiltonianPermutations(n).ToArray();
+            var result = PermutationsGenerator.HamiltonianPermutations(n)
+                .Select(permutation => permutation.PermutationData)
+                .ToArray();
             if (result.Length % Constants.PhrasesPerSet == 0)
             {
                 return result;

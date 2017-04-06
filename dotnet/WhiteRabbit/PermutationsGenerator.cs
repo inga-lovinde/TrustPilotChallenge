@@ -34,9 +34,7 @@
 
             public static Permutation Empty { get; } = new Permutation(new int[] { });
 
-            private int[] PermutationData { get; }
-
-            public int this[int index] => this.PermutationData[index];
+            public int[] PermutationData { get; }
 
             public static IEnumerable<Permutation> HamiltonianPermutationsIterator(int n)
             {
