@@ -41,19 +41,35 @@ That's why the given hashes are solved much sooner than it takes to check all an
 
 Anagrams generation is not parallelized, as even single-threaded performance for 4-word anagrams is high enough; and 5-word (or larger) anagrams are frequent enough for most of the time being spent on computing hashes, with full CPU load.
 
-Multi-threaded performance with RyuJIT (.NET 4.6, 64-bit system) on quad-core Sandy Bridge @2.8GHz is as follows (excluding initialization time of 0.2 seconds):
+Multi-threaded performance with RyuJIT (.NET 4.6, 64-bit system) on quad-core Sandy Bridge @2.8GHz (without AVX2 support) is as follows (excluding initialization time of 0.2 seconds), for different maximum allowed words in an anagram:
 
-* If only phrases of at most 4 words are allowed, then it takes **0.9 seconds** to find and check all 7,433,016 anagrams; **all hashes are solved in first 0.15 seconds**.
-
-* If phrases of 5 words are allowed as well, then it takes around 100 seconds to find and check all 1,348,876,896 anagrams; all hashes are solved in first 2.5 seconds.
-
-* If phrases of 6 words are allowed as well, then it takes around 75 minutes to find and check all 58,837,302,096 anagrams; "more difficult" hash is solved in 2.5 seconds, "easiest" in 14 seconds, and "hard" in 35 seconds.
-
-* If phrases of 7 words are allowed as well, then it takes 75 seconds to count all 1,108,328,708,976 anagrams, and around 40 hours (speculatively) to find and check all these anagrams; "more difficult" hash is solved in 13 seconds, "easiest" in 1.5 minutes, and "hard" in 4.5 minutes.
+Number of words|Time to check all anagrams no longer than that|Time to solve "easy" hash|Time to solve "more difficult" hash|Time to solve "hard" hash|Number of anagrams no longer than that (see note below)
+---------------|----------------------------------------------|-------------------------|-----------------------------------|-------------------------|-------------------------------------------------------
+3|Fractions of a second||||4560
+4|0.6s|||0.1s|7,433,016
+5|60s|||1.5s|1,348,876,896
+6|45 minutes|||21s|58,837,302,096
+7|10 hours (?)|1.5 minutes|8s|4.5 minutes|1,108,328,708,976
+8|||||12,089,249,231,856
+9|||||88,977,349,731,696
+10|||||482,627,715,786,096
+11|||||2,030,917,440,675,696
+12|||||6,813,402,098,518,896
+13|||||18,437,325,782,691,696
+14|||||40,367,286,468,925,296
+15|||||71,561,858,517,565,296
+16|||||103,280,807,987,773,296
+17|||||123,910,678,817,341,296
+18|||||130,313,052,523,069,296
 
 Note that all measurements were done on a Release build; Debug build is significantly slower.
 
 For comparison, certain other solutions available on GitHub seem to require 3 hours to find all 3-word anagrams. This solution is faster by 6-7 orders of magnitude (it finds and checks all 4-word anagrams in 1/10000th fraction of time required for other solution just to find all 3-word anagrams, with no MD5 calculations).
+
+Also, note that anagram counts are inflated for the sake of code simplicity.
+E.g. for phrase "aabbc" and dictionary [ab, ba, c] there are four possible set of words adding up to the source phrase: [ab, ab, c], [ab, ba, c], [ba, ab, c], [ba, ba, c].
+My implementation regards these sets as sets of different words, and applies all possible permutations to the every set, even if it will result in the same set.
+For the example above, my application would produce 24 anagrams (with six permutations for every of the four sets), although actually there are only 12 different anagrams.
 
 Conditional compilation symbols
 ===============================
@@ -111,4 +127,46 @@ There is no need in processing all the words that are too large to be useful at 
 11. Filtering the original dictionary (e.g. throwing away all single-letter words) does not really improve the performance, thanks to the optimizations mentioned in notes 7-9.
 This solution finds all anagrams, including those with single-letter words.
 
-12. MD5 computation could be further optimized by leveraging CPU extensions (which would reduce runtime by 5x to 10x); however, it could not be done with current .NET (see readme for https://github.com/penartur/TrustPilotChallenge/tree/simd-md5)
+12. Computing the entire MD5, and then comparing it to the target MD5s, makes little sense. Each of MD5 components is `uint`, which means that the chances of first component match for different hashes are one in 4 billions.
+It's more efficient to compute only the first component (which is 5% faster since we don't need to perform rounds 62-64 of MD5), and use only the first component for a lookup (which makes the lookup 4x faster).
+To prevent false positives, we could compute the entire MD5 again if there is a match.
+As that will only happen once in 4 billion hashes, the efficiency of this computation does not matter at all.
+Right now, this additional checking is not implemented, which means that once in a minute (if there are 3 target hashes) the program will produce a false positive, which allows one to monitor progress.
+
+13. MD5 computation is further optimized by leveraging CPU extensions.
+For example, one could compute MD5 more effectively by using `rotl` instruction to rotate numbers (which is currently done with two bitshifts and one `or` / `xor`).
+What's more important, one could compute 4 hashes at once (on a single core) using SSE, 8 hashes at once using AVX2, or 16 hashes at once using AVX512 (AVX lacks enough instructions to make computing hashes feasible).
+.NET/RyuJit does not support some of the required intrinsics (`rotl` for plain MD5 implementation, `psrld` and `pslld` for SSE, and similar intrinsics for AVX2).
+Although `rotl` support is expected in next release of RyuJIT (see https://github.com/dotnet/coreclr/pull/1830), no support for bitshift SIMD/AVX2 instructions is currently expected (see https://github.com/dotnet/coreclr/issues/3226).
+However, one can move MD5 computations to the unmanaged C++ code, where all the intrinsics are available.
+To make this work efficiently, I had to store anagrams in chunks of 8 anagrams (so that unmanaged code will receive the chunk and produce 8 hashes).
+And to make this efficient, I had to make all permutation counts to divide by 8 by filling in some additional permutation copies.
+It slows down processing anagrams of 1, 2, and 3 words (as for every set of word, number of anagrams is increased to 8 from 1, 2 and 6, respectively); however, these are relatively rare for a given phrase and dictionary.
+
+Implementation details
+======================
+
+Given all the above, the implementation is as follows:
+
+1. Words from the dictionary are converted into arrays of bytes with a trailing space.
+
+2. The dictionary is filtered from words that could not be a part of anagram (e.g. "b" or "aa"), and from duplicates.
+
+3. Words are converted into vectors, and grouped by vector.
+
+4. Vectors are ordered by their norm, in a descending order.
+
+5. All sequences of non-decreasing vector indices adding up to a target vector are found.
+
+6. For every sequence, a sequence of word arrays corresponging to these vectors is generated.
+
+7. For every sequence of word arrays, all sequences of word combinations are generated (e.g. for [[ab, ba], [cd, dc]], we generate [ab, cd], [ab, dc], [ba, cd], [ba, dc]).
+
+8. For every sequence of words, all permutations are generated (in chunks of 8).
+
+9. For every 8 permuted sequences of words, `uint[64]` message is generated (8 uints = 28 bytes with a trailing `128` byte, plus a length in bits for every sequence).
+
+10. For every `uint[64]` message, 8 `uint`s corresponding to the first components of MD5 hashes for `uint[8]` messages are generated.
+
+11. Every resulting `uint` is checked against the targets; if match is found, both sequence of word and full MD5 hash are printed to the output.
+
