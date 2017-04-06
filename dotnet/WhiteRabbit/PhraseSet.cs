@@ -1,8 +1,16 @@
-﻿namespace WhiteRabbit
+﻿using System.Numerics;
+
+namespace WhiteRabbit
 {
     // Anagram representation optimized for MD5
     internal unsafe struct PhraseSet
     {
+        private const int WordIndexMask = unchecked((int)(((uint)-1) << 16));
+
+        private const int WordIndexIncrement = ((int)1) << 16;
+
+        private const int CharIndexMask = ((int)1 << 16) - 1;
+
         public fixed uint Buffer[8 * Constants.PhrasesPerSet];
 
         public PhraseSet(byte[][] words, int[][] permutations, int offset, int numberOfCharacters)
@@ -15,22 +23,20 @@
                 {
                     var permutation = permutations[offset + i];
                     var startPointer = bufferPointer + i * 8;
-                    byte[] currentWord = words[permutation[0]];
-                    var j = 0;
-                    var wordIndex = 0;
                     var currentPointer = (byte*)startPointer;
                     byte* lastPointer = currentPointer + length;
+
+                    int currentState = 0; // wordIndex << 16 + charIndex
+                    byte[] currentWord = words[permutation[0]];
+
                     for (; currentPointer < lastPointer; currentPointer++)
                     {
-                        if (j >= currentWord.Length)
-                        {
-                            j = 0;
-                            wordIndex++;
-                            currentWord = words[permutation[wordIndex]];
-                        }
+                        currentWord = words[permutation[currentState >> 16]];
+                        *currentPointer = currentWord[(currentState & CharIndexMask)];
 
-                        *currentPointer = currentWord[j];
-                        j++;
+                        currentState++;
+                        var nextStateNextWord = new Vector<int>((currentState + WordIndexIncrement) & WordIndexMask);
+                        currentState = Vector.ConditionalSelect(Vector.GreaterThanOrEqual(new Vector<int>(currentState & CharIndexMask), new Vector<int>(currentWord.Length)), nextStateNextWord, new Vector<int>(currentState))[0];
                     }
                     *currentPointer = 128;
 
