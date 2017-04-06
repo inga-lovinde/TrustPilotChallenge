@@ -68,9 +68,8 @@
         public long GetPhrasesCount()
         {
             return this.VectorsProcessor.GenerateSequences()
-                .Select(this.ConvertVectorsToWords)
-                .SelectMany(Flattener.Flatten)
-                .Sum(words => (long)PrecomputedPermutationsGenerator.HamiltonianPermutations(words.Length).Count());
+                .Select(this.ConvertVectorsToWordsNumber)
+                .Sum(tuple => tuple.Item2 * PrecomputedPermutationsGenerator.GetPermutationsNumber(tuple.Item1));
         }
 
         private byte[][][] ConvertVectorsToWords(int[] vectors)
@@ -83,6 +82,17 @@
             }
 
             return words;
+        }
+
+        private Tuple<int, long> ConvertVectorsToWordsNumber(int[] vectors)
+        {
+            long result = 1;
+            for (var i = 0; i < vectors.Length; i++)
+            {
+                result *= this.WordsDictionary[vectors[i]].Length;
+            }
+
+            return Tuple.Create(vectors.Length, result);
         }
 
         private IEnumerable<PhraseSet> ConvertWordsToPhrases(byte[][] words)
