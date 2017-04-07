@@ -1,52 +1,63 @@
 ﻿namespace WhiteRabbit
 {
+    using System.Diagnostics;
+
     // Anagram representation optimized for MD5
     internal unsafe struct PhraseSet
     {
-        public fixed uint Buffer[8 * Constants.PhrasesPerSet];
+        public fixed long Buffer[4 * Constants.PhrasesPerSet];
 
-        public PhraseSet(byte[][] words, int[][] permutations, int offset, int numberOfCharacters)
+        public PhraseSet(Word[] words, int[][] permutations, int offset, int numberOfCharacters)
         {
-            fixed (uint* bufferPointer = this.Buffer)
-            {
-                var length = numberOfCharacters + words.Length - 1;
+            Debug.Assert(numberOfCharacters + words.Length - 1 < 27);
 
+            fixed (long* bufferPointer = this.Buffer)
+            {
+                long* longBuffer = (long*)bufferPointer;
+                int numberOfWords = words.Length;
                 for (var i = 0; i < Constants.PhrasesPerSet; i++)
                 {
                     var permutation = permutations[offset + i];
-                    var startPointer = bufferPointer + i * 8;
-                    byte[] currentWord = words[permutation[0]];
-                    var j = 0;
-                    var wordIndex = 0;
-                    var currentPointer = (byte*)startPointer;
-                    byte* lastPointer = currentPointer + length;
-                    for (; currentPointer < lastPointer; currentPointer++)
+                    var cumulativeWordOffsetX4 = 0;
+                    for (var j = 0; j < numberOfWords; j++)
                     {
-                        if (j >= currentWord.Length)
-                        {
-                            j = 0;
-                            wordIndex++;
-                            currentWord = words[permutation[wordIndex]];
-                        }
-
-                        *currentPointer = currentWord[j];
-                        j++;
+                        var currentWord = words[permutation[j]];
+                        longBuffer[0] |= currentWord.Buffers[cumulativeWordOffsetX4 + 0];
+                        longBuffer[1] |= currentWord.Buffers[cumulativeWordOffsetX4 + 1];
+                        longBuffer[2] ^= currentWord.Buffers[cumulativeWordOffsetX4 + 2];
+                        longBuffer[3] ^= currentWord.Buffers[cumulativeWordOffsetX4 + 3];
+                        cumulativeWordOffsetX4 += currentWord.LengthX4;
                     }
-                    *currentPointer = 128;
 
-                    startPointer[7] = (uint)(length << 3);
+                    longBuffer += 4;
+                }
+
+                var length = numberOfCharacters + numberOfWords - 1;
+                byte* byteBuffer = ((byte*)bufferPointer) + length;
+                for (var i = 0; i < Constants.PhrasesPerSet; i++)
+                {
+                    *byteBuffer = 128;
+                    byteBuffer += 32;
+                }
+
+                var lengthInBits = (uint)(length << 3);
+                uint* uintBuffer = ((uint*)bufferPointer) + 7;
+                for (var i = 0; i < Constants.PhrasesPerSet; i++)
+                {
+                    *uintBuffer = lengthInBits;
+                    uintBuffer += 8;
                 }
             }
         }
 
         public byte[] GetBytes(int number)
         {
-            System.Diagnostics.Debug.Assert(number < Constants.PhrasesPerSet);
+            Debug.Assert(number < Constants.PhrasesPerSet);
 
-            fixed(uint* bufferPointer = this.Buffer)
+            fixed(long* bufferPointer = this.Buffer)
             {
-                var phrasePointer = bufferPointer + 8 * number;
-                var length = phrasePointer[7] >> 3;
+                var phrasePointer = bufferPointer + 4 * number;
+                var length = ((uint*)phrasePointer)[7] >> 3;
                 var result = new byte[length];
                 for (var i = 0; i < length; i++)
                 {

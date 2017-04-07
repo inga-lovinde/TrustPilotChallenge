@@ -12,7 +12,7 @@
             var result = new uint[Constants.PhrasesPerSet];
             fixed (uint* resultPointer = result)
             {
-                MD5Unmanaged.ComputeMD5(input.Buffer, resultPointer);
+                MD5Unmanaged.ComputeMD5((uint*)input.Buffer, resultPointer);
             }
 
             return result;

@@ -23,11 +23,11 @@
             // Dictionary of vectors to array of words represented by this vector
             var vectorsToWords = words
                 .Where(word => word != null && word.Length > 0)
-                .Select(word => new { word = word.Concat(new byte[] { SPACE }).ToArray(), vector = this.VectorsConverter.GetVector(word) })
+                .Select(word => new { word, vector = this.VectorsConverter.GetVector(word) })
                 .Where(tuple => tuple.vector != null)
                 .Select(tuple => new { tuple.word, vector = tuple.vector.Value })
                 .GroupBy(tuple => tuple.vector)
-                .Select(group => new { vector = group.Key, words = group.Select(tuple => tuple.word).Distinct(new ByteArrayEqualityComparer()).ToArray() })
+                .Select(group => new { vector = group.Key, words = group.Select(tuple => tuple.word).Distinct(new ByteArrayEqualityComparer()).Select(word => new Word(word)).ToArray() })
                 .ToList();
 
             this.WordsDictionary = vectorsToWords.Select(tuple => tuple.words).ToArray();
@@ -43,7 +43,7 @@
         /// <summary>
         /// WordsDictionary[vectorIndex] = [word1, word2, ...]
         /// </summary>
-        private byte[][][] WordsDictionary { get; }
+        private Word[][] WordsDictionary { get; }
 
         private VectorsProcessor VectorsProcessor { get; }
 
@@ -72,10 +72,10 @@
                 .Sum(tuple => tuple.Item2 * PrecomputedPermutationsGenerator.GetPermutationsNumber(tuple.Item1));
         }
 
-        private byte[][][] ConvertVectorsToWords(int[] vectors)
+        private Word[][] ConvertVectorsToWords(int[] vectors)
         {
             var length = vectors.Length;
-            var words = new byte[length][][];
+            var words = new Word[length][];
             for (var i = 0; i < length; i++)
             {
                 words[i] = this.WordsDictionary[vectors[i]];
@@ -95,7 +95,7 @@
             return Tuple.Create(vectors.Length, result);
         }
 
-        private IEnumerable<PhraseSet> ConvertWordsToPhrases(byte[][] words)
+        private IEnumerable<PhraseSet> ConvertWordsToPhrases(Word[] words)
         {
             var permutations = PrecomputedPermutationsGenerator.HamiltonianPermutations(words.Length);
             var permutationsLength = permutations.Length;
