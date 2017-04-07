@@ -5,7 +5,7 @@
 
     internal static class PrecomputedPermutationsGenerator
     {
-        private static int[][][] Permutations { get; } = Enumerable.Range(0, 8).Select(GeneratePermutations).ToArray();
+        private static int[][][] Permutations { get; } = Enumerable.Range(0, 9).Select(GeneratePermutations).ToArray();
 
         private static long[] PermutationsNumbers { get; } = GeneratePermutationsNumbers().Take(19).ToArray();
 

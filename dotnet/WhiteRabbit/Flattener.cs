@@ -26,140 +26,114 @@
         private static IEnumerable<T[]> Flatten3<T>(T[][] phrase)
         {
             foreach (var item0 in phrase[0])
-            {
-                foreach (var item1 in phrase[1])
+            foreach (var item1 in phrase[1])
+            foreach (var item2 in phrase[2])
+                yield return new T[]
                 {
-                    foreach (var item2 in phrase[2])
-                    {
-                        yield return new T[]
-                        {
-                            item0,
-                            item1,
-                            item2,
-                        };
-                    }
-                }
-            }
+                    item0,
+                    item1,
+                    item2,
+                };
         }
 
         // Fast hard-coded implementation for 4 words
         private static IEnumerable<T[]> Flatten4<T>(T[][] phrase)
         {
             foreach (var item0 in phrase[0])
-            {
-                foreach (var item1 in phrase[1])
+            foreach (var item1 in phrase[1])
+            foreach (var item2 in phrase[2])
+            foreach (var item3 in phrase[3])
+                yield return new T[]
                 {
-                    foreach (var item2 in phrase[2])
-                    {
-                        foreach (var item3 in phrase[3])
-                        {
-                            yield return new T[]
-                            {
-                                item0,
-                                item1,
-                                item2,
-                                item3,
-                            };
-                        }
-                    }
-                }
-            }
+                    item0,
+                    item1,
+                    item2,
+                    item3,
+                };
         }
 
         // Fast hard-coded implementation for 5 words
         private static IEnumerable<T[]> Flatten5<T>(T[][] phrase)
         {
             foreach (var item0 in phrase[0])
-            {
-                foreach (var item1 in phrase[1])
+            foreach (var item1 in phrase[1])
+            foreach (var item2 in phrase[2])
+            foreach (var item3 in phrase[3])
+            foreach (var item4 in phrase[4])
+                yield return new T[]
                 {
-                    foreach (var item2 in phrase[2])
-                    {
-                        foreach (var item3 in phrase[3])
-                        {
-                            foreach (var item4 in phrase[4])
-                            {
-                                yield return new T[]
-                                {
-                                    item0,
-                                    item1,
-                                    item2,
-                                    item3,
-                                    item4,
-                                };
-                            }
-                        }
-                    }
-                }
-            }
+                    item0,
+                    item1,
+                    item2,
+                    item3,
+                    item4,
+                };
         }
 
         // Fast hard-coded implementation for 6 words
         private static IEnumerable<T[]> Flatten6<T>(T[][] phrase)
         {
             foreach (var item0 in phrase[0])
-            {
-                foreach (var item1 in phrase[1])
+            foreach (var item1 in phrase[1])
+            foreach (var item2 in phrase[2])
+            foreach (var item3 in phrase[3])
+            foreach (var item4 in phrase[4])
+            foreach (var item5 in phrase[5])
+                yield return new T[]
                 {
-                    foreach (var item2 in phrase[2])
-                    {
-                        foreach (var item3 in phrase[3])
-                        {
-                            foreach (var item4 in phrase[4])
-                            {
-                                foreach (var item5 in phrase[5])
-                                {
-                                    yield return new T[]
-                                    {
-                                        item0,
-                                        item1,
-                                        item2,
-                                        item3,
-                                        item4,
-                                        item5,
-                                    };
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+                    item0,
+                    item1,
+                    item2,
+                    item3,
+                    item4,
+                    item5,
+                };
         }
 
         // Fast hard-coded implementation for 7 words
         private static IEnumerable<T[]> Flatten7<T>(T[][] phrase)
         {
             foreach (var item0 in phrase[0])
-            {
-                foreach (var item1 in phrase[1])
+            foreach (var item1 in phrase[1])
+            foreach (var item2 in phrase[2])
+            foreach (var item3 in phrase[3])
+            foreach (var item4 in phrase[4])
+            foreach (var item5 in phrase[5])
+            foreach (var item6 in phrase[6])
+                yield return new T[]
                 {
-                    foreach (var item2 in phrase[2])
-                    {
-                        foreach (var item3 in phrase[3])
-                        {
-                            foreach (var item4 in phrase[4])
-                            {
-                                foreach (var item5 in phrase[5])
-                                {
-                                    foreach (var item6 in phrase[6])
-                                    {
-                                        yield return new T[]
-                                        {
-                                            item0,
-                                            item1,
-                                            item2,
-                                            item3,
-                                            item4,
-                                            item5,
-                                            item6,
-                                        };
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+                    item0,
+                    item1,
+                    item2,
+                    item3,
+                    item4,
+                    item5,
+                    item6,
+                };
+        }
+
+        // Fast hard-coded implementation for 7 words
+        private static IEnumerable<T[]> Flatten8<T>(T[][] phrase)
+        {
+            foreach (var item0 in phrase[0])
+            foreach (var item1 in phrase[1])
+            foreach (var item2 in phrase[2])
+            foreach (var item3 in phrase[3])
+            foreach (var item4 in phrase[4])
+            foreach (var item5 in phrase[5])
+            foreach (var item6 in phrase[6])
+            foreach (var item7 in phrase[7])
+                yield return new T[]
+                {
+                    item0,
+                    item1,
+                    item2,
+                    item3,
+                    item4,
+                    item5,
+                    item6,
+                    item7,
+                };
         }
 
         public static IEnumerable<T[]> Flatten<T>(T[][] wordVariants)
@@ -176,6 +150,8 @@
                     return Flatten6(wordVariants);
                 case 7:
                     return Flatten7(wordVariants);
+                case 8:
+                    return Flatten8(wordVariants);
                 default:
                     return FlattenAny(ImmutableStack.Create(wordVariants)).Select(words => words.ToArray());
             }

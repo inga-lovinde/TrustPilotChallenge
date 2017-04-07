@@ -50,7 +50,7 @@ Number of words|Time to check all anagrams no longer than that|Time to solve "ea
 5|46s|||1.1s|1,348,876,896
 6|34 minutes|||15s|58,837,302,096
 7|11 hours (?)|45s|6.5s|2 minutes|1,108,328,708,976
-8|||||12,089,249,231,856
+8||4 minutes|27s|11 minutes|12,089,249,231,856
 9|||||88,977,349,731,696
 10|||||482,627,715,786,096
 11|||||2,030,917,440,675,696
