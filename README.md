@@ -41,16 +41,16 @@ That's why the given hashes are solved much sooner than it takes to check all an
 
 Anagrams generation is not parallelized, as even single-threaded performance for 4-word anagrams is high enough; and 5-word (or larger) anagrams are frequent enough for most of the time being spent on computing hashes, with full CPU load.
 
-Multi-threaded performance with RyuJIT (.NET 4.6, 64-bit system) on quad-core Sandy Bridge @2.8GHz (without AVX2 support) is as follows (excluding initialization time of 0.2 seconds), for different maximum allowed words in an anagram:
+Multi-threaded performance with RyuJIT (.NET 4.6, 64-bit system) on laptop with dual-core Sandy Bridge @2.6GHz (without AVX2 support) is as follows (excluding initialization time of 0.2 seconds), for different maximum allowed words in an anagram:
 
 Number of words|Time to check all anagrams no longer than that|Time to solve "easy" hash|Time to solve "more difficult" hash|Time to solve "hard" hash|Number of anagrams no longer than that (see note below)
 ---------------|----------------------------------------------|-------------------------|-----------------------------------|-------------------------|-------------------------------------------------------
-3|Fractions of a second||||4560
-4|0.55s|||0.1s|7,433,016
-5|46s|||1.1s|1,348,876,896
-6|34 minutes|||15s|58,837,302,096
-7|11 hours (?)|45s|6.5s|2 minutes|1,108,328,708,976
-8||4 minutes|27s|11 minutes|12,089,249,231,856
+3|0.1s||||4560
+4|0.8s|||0.15s|7,433,016
+5|87s|1s|0.3s|2s|1,348,876,896
+6|1 hour (?)|10s|1.7s|25s|58,837,302,096
+7|11 hours (?)|78s|9s|3.5 minutes|1,108,328,708,976
+8||7.5 minutes|50s|20 minutes|12,089,249,231,856
 9|||||88,977,349,731,696
 10|||||482,627,715,786,096
 11|||||2,030,917,440,675,696
