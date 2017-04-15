@@ -5,25 +5,44 @@
 
     internal static class PrecomputedPermutationsGenerator
     {
-        private static int[][][] Permutations { get; } = Enumerable.Range(0, 9).Select(GeneratePermutations).ToArray();
+        private static long[][] Permutations { get; } = Enumerable.Range(0, 9).Select(GeneratePermutations).ToArray();
 
         private static long[] PermutationsNumbers { get; } = GeneratePermutationsNumbers().Take(19).ToArray();
 
-        public static int[][] HamiltonianPermutations(int n) => Permutations[n];
+        public static long[] HamiltonianPermutations(int n) => Permutations[n];
 
         public static long GetPermutationsNumber(int n) => PermutationsNumbers[n];
 
-        private static int[][] GeneratePermutations(int n)
+        private static long[] GeneratePermutations(int n)
         {
             var result = PermutationsGenerator.HamiltonianPermutations(n)
-                .Select(permutation => permutation.PermutationData)
+                .Select(FormatPermutation)
                 .ToArray();
-            if (result.Length % Constants.PhrasesPerSet == 0)
+
+            return PadToWholeChunks(result, Constants.PhrasesPerSet);
+        }
+
+        private static T[] PadToWholeChunks<T>(T[] original, int chunkSize)
+        {
+            if (original.Length % chunkSize == 0)
             {
-                return result;
+                return original;
             }
 
-            return result.Concat(Enumerable.Repeat(result[0], Constants.PhrasesPerSet - (result.Length % Constants.PhrasesPerSet))).ToArray();
+            return original.Concat(Enumerable.Repeat(original[0], chunkSize - (original.Length % chunkSize))).ToArray();
+        }
+
+        private static long FormatPermutation(PermutationsGenerator.Permutation permutation)
+        {
+            System.Diagnostics.Debug.Assert(permutation.PermutationData.Length <= 16);
+
+            long result = 0;
+            for (var i = 0; i < permutation.PermutationData.Length; i++)
+            {
+                result |= (long)(permutation.PermutationData[i]) << (4 * i);
+            }
+
+            return result;
         }
 
         private static IEnumerable<long> GeneratePermutationsNumbers()

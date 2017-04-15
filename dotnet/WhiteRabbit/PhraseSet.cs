@@ -7,7 +7,7 @@
     {
         public fixed long Buffer[4 * Constants.PhrasesPerSet];
 
-        public PhraseSet(Word[] words, int[][] permutations, int offset, int numberOfCharacters)
+        public PhraseSet(Word[] words, long[] permutations, int offset, int numberOfCharacters)
         {
             Debug.Assert(numberOfCharacters + words.Length - 1 < 27);
 
@@ -21,7 +21,8 @@
                     var cumulativeWordOffsetX4 = 0;
                     for (var j = 0; j < numberOfWords; j++)
                     {
-                        var currentWord = words[permutation[j]];
+                        var currentWord = words[permutation & 15];
+                        permutation = permutation >> 4;
                         longBuffer[0] |= currentWord.Buffers[cumulativeWordOffsetX4 + 0];
                         longBuffer[1] |= currentWord.Buffers[cumulativeWordOffsetX4 + 1];
                         longBuffer[2] ^= currentWord.Buffers[cumulativeWordOffsetX4 + 2];
