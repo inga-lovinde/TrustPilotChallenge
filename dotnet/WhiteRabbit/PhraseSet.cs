@@ -3,34 +3,46 @@
     using System.Diagnostics;
 
     // Anagram representation optimized for MD5
-    internal unsafe struct PhraseSet
+    internal struct PhraseSet
     {
-        public fixed long Buffer[4 * Constants.PhrasesPerSet];
+        public long[] Buffer;
 
-        public PhraseSet(Word[] words, long[] permutations, int offset, int numberOfCharacters)
+        public unsafe PhraseSet(Word[] words, long[] permutations, int offset, int numberOfCharacters)
         {
             Debug.Assert(numberOfCharacters + words.Length - 1 < 27);
+
+            this.Buffer = new long[4 * Constants.PhrasesPerSet];
 
             fixed (long* bufferPointer = this.Buffer)
             {
                 long* longBuffer = (long*)bufferPointer;
                 int numberOfWords = words.Length;
-                for (var i = 0; i < Constants.PhrasesPerSet; i++)
-                {
-                    var permutation = permutations[offset + i];
-                    var cumulativeWordOffsetX4 = 0;
-                    for (var j = 0; j < numberOfWords; j++)
-                    {
-                        var currentWord = words[permutation & 15];
-                        permutation = permutation >> 4;
-                        longBuffer[0] |= currentWord.Buffers[cumulativeWordOffsetX4 + 0];
-                        longBuffer[1] |= currentWord.Buffers[cumulativeWordOffsetX4 + 1];
-                        longBuffer[2] ^= currentWord.Buffers[cumulativeWordOffsetX4 + 2];
-                        longBuffer[3] ^= currentWord.Buffers[cumulativeWordOffsetX4 + 3];
-                        cumulativeWordOffsetX4 += currentWord.LengthX4;
-                    }
 
-                    longBuffer += 4;
+                fixed (long* permutationsPointer = permutations)
+                {
+                    var currentPermutationPointer = permutationsPointer + offset;
+                    for (var i = 0; i < Constants.PhrasesPerSet; i++, currentPermutationPointer++)
+                    {
+                        var permutation = *currentPermutationPointer;
+                        if (permutation == 0)
+                        {
+                            continue;
+                        }
+
+                        var cumulativeWordOffsetX4 = 0;
+                        for (var j = 0; j < numberOfWords; j++)
+                        {
+                            var currentWord = words[permutation & 15];
+                            permutation = permutation >> 4;
+                            longBuffer[0] |= currentWord.Buffers[cumulativeWordOffsetX4 + 0];
+                            longBuffer[1] |= currentWord.Buffers[cumulativeWordOffsetX4 + 1];
+                            longBuffer[2] ^= currentWord.Buffers[cumulativeWordOffsetX4 + 2];
+                            longBuffer[3] ^= currentWord.Buffers[cumulativeWordOffsetX4 + 3];
+                            cumulativeWordOffsetX4 += currentWord.LengthX4;
+                        }
+
+                        longBuffer += 4;
+                    }
                 }
 
                 var length = numberOfCharacters + numberOfWords - 1;
@@ -51,7 +63,7 @@
             }
         }
 
-        public byte[] GetBytes(int number)
+        public unsafe byte[] GetBytes(int number)
         {
             Debug.Assert(number < Constants.PhrasesPerSet);
 

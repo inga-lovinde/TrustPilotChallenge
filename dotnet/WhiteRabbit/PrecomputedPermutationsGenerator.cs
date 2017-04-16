@@ -29,7 +29,7 @@
                 return original;
             }
 
-            return original.Concat(Enumerable.Repeat(original[0], chunkSize - (original.Length % chunkSize))).ToArray();
+            return original.Concat(Enumerable.Repeat(default(T), chunkSize - (original.Length % chunkSize))).ToArray();
         }
 
         private static long FormatPermutation(PermutationsGenerator.Permutation permutation)

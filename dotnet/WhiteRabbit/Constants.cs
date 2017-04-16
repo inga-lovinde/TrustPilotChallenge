@@ -2,6 +2,6 @@
 {
     internal class Constants
     {
-        public const int PhrasesPerSet = 8;
+        public const int PhrasesPerSet = 16;
     }
 }
