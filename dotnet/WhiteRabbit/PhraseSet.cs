@@ -15,51 +15,58 @@
 
             fixed (long* bufferPointer = this.Buffer)
             {
-                long* longBuffer = (long*)bufferPointer;
-                int numberOfWords = wordIndexes.Length;
-
                 fixed (ulong* permutationsPointer = permutations)
                 {
-                    var currentPermutationPointer = permutationsPointer + permutationOffset;
-                    for (var i = 0; i < Constants.PhrasesPerSet; i++, currentPermutationPointer++)
+                    fixed (int* wordIndexesPointer = wordIndexes)
                     {
-                        var permutation = *currentPermutationPointer;
-                        if (permutation == 0)
-                        {
-                            continue;
-                        }
-
-                        var cumulativeWordOffsetX4 = 0;
-                        for (var j = 0; j < numberOfWords; j++)
-                        {
-                            var currentWord = allWords[wordIndexes[permutation & 15]];
-                            permutation = permutation >> 4;
-                            longBuffer[0] |= currentWord.Buffers[cumulativeWordOffsetX4 + 0];
-                            longBuffer[1] |= currentWord.Buffers[cumulativeWordOffsetX4 + 1];
-                            longBuffer[2] ^= currentWord.Buffers[cumulativeWordOffsetX4 + 2];
-                            longBuffer[3] ^= currentWord.Buffers[cumulativeWordOffsetX4 + 3];
-                            cumulativeWordOffsetX4 += currentWord.LengthX4;
-                        }
-
-                        longBuffer += 4;
+                        FillPhraseSet(bufferPointer, allWords, wordIndexesPointer, permutationsPointer, permutationOffset, numberOfCharacters, wordIndexes.Length);
                     }
                 }
+            }
+        }
 
-                var length = numberOfCharacters + numberOfWords - 1;
-                byte* byteBuffer = ((byte*)bufferPointer) + length;
-                for (var i = 0; i < Constants.PhrasesPerSet; i++)
+        private static unsafe void FillPhraseSet(long* bufferPointer, Word[] allWords, int* wordIndexes, ulong* permutationsPointer, int permutationOffset, int numberOfCharacters, int numberOfWords)
+        {
+            long* longBuffer = (long*)bufferPointer;
+
+            var currentPermutationPointer = permutationsPointer + permutationOffset;
+            for (var i = 0; i < Constants.PhrasesPerSet; i++, currentPermutationPointer++)
+            {
+                var permutation = *currentPermutationPointer;
+                if (permutation == 0)
                 {
-                    *byteBuffer = 128;
-                    byteBuffer += 32;
+                    continue;
                 }
 
-                var lengthInBits = (uint)(length << 3);
-                uint* uintBuffer = ((uint*)bufferPointer) + 7;
-                for (var i = 0; i < Constants.PhrasesPerSet; i++)
+                var cumulativeWordOffsetX4 = 0;
+                for (var j = 0; j < numberOfWords; j++)
                 {
-                    *uintBuffer = lengthInBits;
-                    uintBuffer += 8;
+                    var currentWord = allWords[wordIndexes[permutation & 15]];
+                    permutation = permutation >> 4;
+                    longBuffer[0] |= currentWord.Buffers[cumulativeWordOffsetX4 + 0];
+                    longBuffer[1] |= currentWord.Buffers[cumulativeWordOffsetX4 + 1];
+                    longBuffer[2] ^= currentWord.Buffers[cumulativeWordOffsetX4 + 2];
+                    longBuffer[3] ^= currentWord.Buffers[cumulativeWordOffsetX4 + 3];
+                    cumulativeWordOffsetX4 += currentWord.LengthX4;
                 }
+
+                longBuffer += 4;
+            }
+
+            var length = numberOfCharacters + numberOfWords - 1;
+            byte* byteBuffer = ((byte*)bufferPointer) + length;
+            for (var i = 0; i < Constants.PhrasesPerSet; i++)
+            {
+                *byteBuffer = 128;
+                byteBuffer += 32;
+            }
+
+            var lengthInBits = (uint)(length << 3);
+            uint* uintBuffer = ((uint*)bufferPointer) + 7;
+            for (var i = 0; i < Constants.PhrasesPerSet; i++)
+            {
+                *uintBuffer = lengthInBits;
+                uintBuffer += 8;
             }
         }
 
