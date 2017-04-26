@@ -28,10 +28,10 @@ void WhiteRabbitUnmanagedBridge::MD5Unmanaged::ComputeMD5(unsigned __int32 * inp
 
 void WhiteRabbitUnmanagedBridge::MD5Unmanaged::FillPhraseSet(__int64* bufferPointer, __int64* allWordsPointer, __int32* wordIndexes, unsigned __int64* permutationsPointer, int permutationOffset, int numberOfCharacters, int numberOfWords)
 {
-    long* longBuffer = (long*)bufferPointer;
+    __int64* longBuffer = (__int64*)bufferPointer;
 
     auto currentPermutationPointer = permutationsPointer + permutationOffset;
-    for (auto i = 0; i < WhiteRabbitUnmanagedBridge::MD5Unmanaged::PhrasesPerSet; i++, currentPermutationPointer++)
+    for (auto i = 0; i < PHRASES_PER_SET; i++, currentPermutationPointer++)
     {
         auto permutation = *currentPermutationPointer;
         if (permutation == 0)
@@ -48,7 +48,7 @@ void WhiteRabbitUnmanagedBridge::MD5Unmanaged::FillPhraseSet(__int64* bufferPoin
             longBuffer[1] |= currentWord[cumulativeWordOffsetX4 + 1];
             longBuffer[2] ^= currentWord[cumulativeWordOffsetX4 + 2];
             longBuffer[3] ^= currentWord[cumulativeWordOffsetX4 + 3];
-            cumulativeWordOffsetX4 += (int)currentWord[127];
+            cumulativeWordOffsetX4 += (__int32)currentWord[127];
         }
 
         longBuffer += 4;
@@ -56,15 +56,15 @@ void WhiteRabbitUnmanagedBridge::MD5Unmanaged::FillPhraseSet(__int64* bufferPoin
 
     auto length = numberOfCharacters + numberOfWords - 1;
     unsigned char* byteBuffer = ((unsigned char*)bufferPointer) + length;
-    for (auto i = 0; i < WhiteRabbitUnmanagedBridge::MD5Unmanaged::PhrasesPerSet; i++)
+    for (auto i = 0; i < PHRASES_PER_SET; i++)
     {
         *byteBuffer = 128;
         byteBuffer += 32;
     }
 
-    auto lengthInBits = (unsigned int)(length << 3);
-    unsigned int* uintBuffer = ((unsigned int*)bufferPointer) + 7;
-    for (auto i = 0; i < WhiteRabbitUnmanagedBridge::MD5Unmanaged::PhrasesPerSet; i++)
+    auto lengthInBits = (unsigned __int32)(length << 3);
+    unsigned int* uintBuffer = ((unsigned __int32*)bufferPointer) + 7;
+    for (auto i = 0; i < PHRASES_PER_SET; i++)
     {
         *uintBuffer = lengthInBits;
         uintBuffer += 8;
