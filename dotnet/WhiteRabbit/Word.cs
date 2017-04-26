@@ -8,6 +8,13 @@
 
         public int LengthX4 { get; }
 
+        private Word()
+        {
+            this.Original = new byte[0];
+            this.Buffers = new long[128];
+            this.LengthX4 = 0;
+        }
+
         public unsafe Word(byte[] word)
         {
             var tmpWord = new byte[word.Length + 1];
@@ -37,5 +44,7 @@
             this.Buffers = buffers;
             this.LengthX4 = tmpWord.Length * 4;
         }
+
+        private static Word Empty { get; } = new Word();
     }
 }

@@ -20,17 +20,25 @@
             this.NumberOfCharacters = filteredSource.Length;
             this.VectorsConverter = new VectorsConverter(filteredSource);
 
-            // Dictionary of vectors to array of words represented by this vector
-            var vectorsToWords = words
+            var allWordsAndVectors = words
                 .Where(word => word != null && word.Length > 0)
                 .Select(word => new { word, vector = this.VectorsConverter.GetVector(word) })
                 .Where(tuple => tuple.vector != null)
-                .Select(tuple => new { tuple.word, vector = tuple.vector.Value })
+                .Select(tuple => tuple.word)
+                .Distinct(new ByteArrayEqualityComparer())
+                .Select(word => word)
+                .ToArray();
+
+            // Dictionary of vectors to array of words represented by this vector
+            var vectorsToWords = allWordsAndVectors
+                .Select((word, index) => new { word, index, vector = this.VectorsConverter.GetVector(word).Value })
                 .GroupBy(tuple => tuple.vector)
-                .Select(group => new { vector = group.Key, words = group.Select(tuple => tuple.word).Distinct(new ByteArrayEqualityComparer()).Select(word => new Word(word)).ToArray() })
+                .Select(group => new { vector = group.Key, words = group.Select(tuple => tuple.index).ToArray() })
                 .ToList();
 
             this.WordsDictionary = vectorsToWords.Select(tuple => tuple.words).ToArray();
+
+            this.AllWords = allWordsAndVectors.Select(word => new Word(word)).ToArray();
 
             this.VectorsProcessor = new VectorsProcessor(
                 this.VectorsConverter.GetVector(filteredSource).Value,
@@ -40,10 +48,12 @@
 
         private VectorsConverter VectorsConverter { get; }
 
+        private Word[] AllWords { get; }
+
         /// <summary>
-        /// WordsDictionary[vectorIndex] = [word1, word2, ...]
+        /// WordsDictionary[vectorIndex] = [word1index, word2index, ...]
         /// </summary>
-        private Word[][] WordsDictionary { get; }
+        private int[][] WordsDictionary { get; }
 
         private VectorsProcessor VectorsProcessor { get; }
 
@@ -61,7 +71,7 @@
             // converting sequences of vectors to the sequences of words...
             return from sum in sums
                    let filter = ComputeFilter(sum)
-                   let wordsVariants = this.ConvertVectorsToWords(sum)
+                   let wordsVariants = this.ConvertVectorsToWordIndexes(sum)
                    from wordsArray in Flattener.Flatten(wordsVariants)
                    from phraseSet in this.ConvertWordsToPhrases(wordsArray, filter)
                    select phraseSet;
@@ -88,10 +98,10 @@
             return result;
         }
 
-        private Word[][] ConvertVectorsToWords(int[] vectors)
+        private int[][] ConvertVectorsToWordIndexes(int[] vectors)
         {
             var length = vectors.Length;
-            var words = new Word[length][];
+            var words = new int[length][];
             for (var i = 0; i < length; i++)
             {
                 words[i] = this.WordsDictionary[vectors[i]];
@@ -111,13 +121,13 @@
             return Tuple.Create(vectors.Length, result);
         }
 
-        private IEnumerable<PhraseSet> ConvertWordsToPhrases(Word[] words, uint filter)
+        private IEnumerable<PhraseSet> ConvertWordsToPhrases(int[] wordIndexes, uint filter)
         {
-            var permutations = PrecomputedPermutationsGenerator.HamiltonianPermutations(words.Length, filter);
+            var permutations = PrecomputedPermutationsGenerator.HamiltonianPermutations(wordIndexes.Length, filter);
             var permutationsLength = permutations.Length;
             for (var i = 0; i < permutationsLength; i += Constants.PhrasesPerSet)
             {
-                yield return new PhraseSet(words, permutations, i, this.NumberOfCharacters);
+                yield return new PhraseSet(this.AllWords, wordIndexes, permutations, i, this.NumberOfCharacters);
             }
         }
     }

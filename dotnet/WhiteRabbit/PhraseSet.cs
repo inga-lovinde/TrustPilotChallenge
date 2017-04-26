@@ -7,20 +7,20 @@
     {
         public long[] Buffer;
 
-        public unsafe PhraseSet(Word[] words, ulong[] permutations, int offset, int numberOfCharacters)
+        public unsafe PhraseSet(Word[] allWords, int[] wordIndexes, ulong[] permutations, int permutationOffset, int numberOfCharacters)
         {
-            Debug.Assert(numberOfCharacters + words.Length - 1 < 27);
+            Debug.Assert(numberOfCharacters + wordIndexes.Length - 1 < 27);
 
             this.Buffer = new long[4 * Constants.PhrasesPerSet];
 
             fixed (long* bufferPointer = this.Buffer)
             {
                 long* longBuffer = (long*)bufferPointer;
-                int numberOfWords = words.Length;
+                int numberOfWords = wordIndexes.Length;
 
                 fixed (ulong* permutationsPointer = permutations)
                 {
-                    var currentPermutationPointer = permutationsPointer + offset;
+                    var currentPermutationPointer = permutationsPointer + permutationOffset;
                     for (var i = 0; i < Constants.PhrasesPerSet; i++, currentPermutationPointer++)
                     {
                         var permutation = *currentPermutationPointer;
@@ -32,7 +32,7 @@
                         var cumulativeWordOffsetX4 = 0;
                         for (var j = 0; j < numberOfWords; j++)
                         {
-                            var currentWord = words[permutation & 15];
+                            var currentWord = allWords[wordIndexes[permutation & 15]];
                             permutation = permutation >> 4;
                             longBuffer[0] |= currentWord.Buffers[cumulativeWordOffsetX4 + 0];
                             longBuffer[1] |= currentWord.Buffers[cumulativeWordOffsetX4 + 1];
