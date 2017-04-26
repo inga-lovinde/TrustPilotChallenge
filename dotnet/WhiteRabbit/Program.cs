@@ -45,12 +45,10 @@
                 Console.WriteLine("Only 64-bit systems are supported due to MD5Digest optimizations");
             }
 
-            var expectedHashesAsVectors = ConfigurationManager.AppSettings["ExpectedHashes"]
+            var expectedHashesFirstComponents = ConfigurationManager.AppSettings["ExpectedHashes"]
                 .Split(',')
-                .Select(hash => new Vector<uint>(HexadecimalStringToUnsignedIntArray(hash)))
+                .Select(hash => HexadecimalStringToUnsignedIntArray(hash)[0])
                 .ToArray();
-
-            var expectedHashesFirstComponents = expectedHashesAsVectors.Select(vector => vector[0]).ToArray();
 
             var processor = new StringsProcessor(
                 Encoding.ASCII.GetBytes(sourcePhrase),
