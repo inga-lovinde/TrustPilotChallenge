@@ -25,3 +25,48 @@ void WhiteRabbitUnmanagedBridge::MD5Unmanaged::ComputeMD5(unsigned __int32 * inp
     }
 #endif
 }
+
+void WhiteRabbitUnmanagedBridge::MD5Unmanaged::FillPhraseSet(__int64* bufferPointer, __int64* allWordsPointer, __int32* wordIndexes, unsigned __int64* permutationsPointer, int permutationOffset, int numberOfCharacters, int numberOfWords)
+{
+    long* longBuffer = (long*)bufferPointer;
+
+    auto currentPermutationPointer = permutationsPointer + permutationOffset;
+    for (auto i = 0; i < WhiteRabbitUnmanagedBridge::MD5Unmanaged::PhrasesPerSet; i++, currentPermutationPointer++)
+    {
+        auto permutation = *currentPermutationPointer;
+        if (permutation == 0)
+        {
+            continue;
+        }
+
+        auto cumulativeWordOffsetX4 = 0;
+        for (auto j = 0; j < numberOfWords; j++)
+        {
+            auto currentWord = allWordsPointer + wordIndexes[permutation & 15] * 128;
+            permutation = permutation >> 4;
+            longBuffer[0] |= currentWord[cumulativeWordOffsetX4 + 0];
+            longBuffer[1] |= currentWord[cumulativeWordOffsetX4 + 1];
+            longBuffer[2] ^= currentWord[cumulativeWordOffsetX4 + 2];
+            longBuffer[3] ^= currentWord[cumulativeWordOffsetX4 + 3];
+            cumulativeWordOffsetX4 += (int)currentWord[127];
+        }
+
+        longBuffer += 4;
+    }
+
+    auto length = numberOfCharacters + numberOfWords - 1;
+    unsigned char* byteBuffer = ((unsigned char*)bufferPointer) + length;
+    for (auto i = 0; i < WhiteRabbitUnmanagedBridge::MD5Unmanaged::PhrasesPerSet; i++)
+    {
+        *byteBuffer = 128;
+        byteBuffer += 32;
+    }
+
+    auto lengthInBits = (unsigned int)(length << 3);
+    unsigned int* uintBuffer = ((unsigned int*)bufferPointer) + 7;
+    for (auto i = 0; i < WhiteRabbitUnmanagedBridge::MD5Unmanaged::PhrasesPerSet; i++)
+    {
+        *uintBuffer = lengthInBits;
+        uintBuffer += 8;
+    }
+}
