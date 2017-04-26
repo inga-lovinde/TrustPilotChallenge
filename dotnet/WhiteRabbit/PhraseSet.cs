@@ -19,13 +19,16 @@
                 {
                     fixed (int* wordIndexesPointer = wordIndexes)
                     {
-                        FillPhraseSet(bufferPointer, allWords, wordIndexesPointer, permutationsPointer, permutationOffset, numberOfCharacters, wordIndexes.Length);
+                        fixed (Word* allWordsPointer = allWords)
+                        {
+                            FillPhraseSet(bufferPointer, (long*)allWordsPointer, wordIndexesPointer, permutationsPointer, permutationOffset, numberOfCharacters, wordIndexes.Length);
+                        }
                     }
                 }
             }
         }
 
-        private static unsafe void FillPhraseSet(long* bufferPointer, Word[] allWords, int* wordIndexes, ulong* permutationsPointer, int permutationOffset, int numberOfCharacters, int numberOfWords)
+        private static unsafe void FillPhraseSet(long* bufferPointer, long* allWordsPointer, int* wordIndexes, ulong* permutationsPointer, int permutationOffset, int numberOfCharacters, int numberOfWords)
         {
             long* longBuffer = (long*)bufferPointer;
 
@@ -41,13 +44,13 @@
                 var cumulativeWordOffsetX4 = 0;
                 for (var j = 0; j < numberOfWords; j++)
                 {
-                    var currentWord = allWords[wordIndexes[permutation & 15]];
+                    var currentWord = allWordsPointer + wordIndexes[permutation & 15] * 128;
                     permutation = permutation >> 4;
-                    longBuffer[0] |= currentWord.Buffers[cumulativeWordOffsetX4 + 0];
-                    longBuffer[1] |= currentWord.Buffers[cumulativeWordOffsetX4 + 1];
-                    longBuffer[2] ^= currentWord.Buffers[cumulativeWordOffsetX4 + 2];
-                    longBuffer[3] ^= currentWord.Buffers[cumulativeWordOffsetX4 + 3];
-                    cumulativeWordOffsetX4 += currentWord.LengthX4;
+                    longBuffer[0] |= currentWord[cumulativeWordOffsetX4 + 0];
+                    longBuffer[1] |= currentWord[cumulativeWordOffsetX4 + 1];
+                    longBuffer[2] ^= currentWord[cumulativeWordOffsetX4 + 2];
+                    longBuffer[3] ^= currentWord[cumulativeWordOffsetX4 + 3];
+                    cumulativeWordOffsetX4 += unchecked((int)currentWord[127]);
                 }
 
                 longBuffer += 4;

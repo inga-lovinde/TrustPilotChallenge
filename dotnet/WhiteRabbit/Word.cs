@@ -1,19 +1,8 @@
 ﻿namespace WhiteRabbit
 {
-    class Word
+    internal unsafe struct Word
     {
-        public byte[] Original;
-
-        public long[] Buffers { get; }
-
-        public int LengthX4 { get; }
-
-        private Word()
-        {
-            this.Original = new byte[0];
-            this.Buffers = new long[128];
-            this.LengthX4 = 0;
-        }
+        public fixed long Buffers[128];
 
         public unsafe Word(byte[] word)
         {
@@ -24,10 +13,7 @@
                 tmpWord[i] = word[i];
             }
 
-            this.Original = tmpWord;
-
-            var buffers = new long[128];
-            fixed (long* buffersPointer = buffers)
+            fixed (long* buffersPointer = this.Buffers)
             {
                 for (var i = 0; i < 32; i++)
                 {
@@ -39,10 +25,9 @@
                         *currentPointer = tmpWord[j];
                     }
                 }
-            }
 
-            this.Buffers = buffers;
-            this.LengthX4 = tmpWord.Length * 4;
+                buffersPointer[127] = tmpWord.Length * 4;
+            }
         }
 
         private static Word Empty { get; } = new Word();
