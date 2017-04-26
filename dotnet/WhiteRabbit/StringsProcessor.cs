@@ -11,7 +11,7 @@
         // Ensure that permutations are precomputed prior to main run, so that processing times will be correct
         static StringsProcessor()
         {
-            PrecomputedPermutationsGenerator.HamiltonianPermutations(0);
+            PrecomputedPermutationsGenerator.HamiltonianPermutations(1, 0);
         }
 
         public StringsProcessor(byte[] sourceString, int maxWordsCount, IEnumerable<byte[]> words)
@@ -59,10 +59,12 @@
             var sums = this.VectorsProcessor.GenerateSequences();
 
             // converting sequences of vectors to the sequences of words...
-            return sums
-                .Select(this.ConvertVectorsToWords)
-                .SelectMany(Flattener.Flatten)
-                .SelectMany(this.ConvertWordsToPhrases);
+            return from sum in sums
+                   let filter = ComputeFilter(sum)
+                   let wordsVariants = this.ConvertVectorsToWords(sum)
+                   from wordsArray in Flattener.Flatten(wordsVariants)
+                   from phraseSet in this.ConvertWordsToPhrases(wordsArray, filter)
+                   select phraseSet;
         }
 
         public long GetPhrasesCount()
@@ -70,6 +72,20 @@
             return this.VectorsProcessor.GenerateSequences()
                 .Select(this.ConvertVectorsToWordsNumber)
                 .Sum(tuple => tuple.Item2 * PrecomputedPermutationsGenerator.GetPermutationsNumber(tuple.Item1));
+        }
+
+        private static uint ComputeFilter(int[] vectors)
+        {
+            uint result = 0;
+            for (var i = 1; i < vectors.Length; i++)
+            {
+                if (vectors[i] == vectors[i - 1])
+                {
+                    result |= (uint)1 << (i - 1);
+                }
+            }
+
+            return result;
         }
 
         private Word[][] ConvertVectorsToWords(int[] vectors)
@@ -95,9 +111,9 @@
             return Tuple.Create(vectors.Length, result);
         }
 
-        private IEnumerable<PhraseSet> ConvertWordsToPhrases(Word[] words)
+        private IEnumerable<PhraseSet> ConvertWordsToPhrases(Word[] words, uint filter)
         {
-            var permutations = PrecomputedPermutationsGenerator.HamiltonianPermutations(words.Length);
+            var permutations = PrecomputedPermutationsGenerator.HamiltonianPermutations(words.Length, filter);
             var permutationsLength = permutations.Length;
             for (var i = 0; i < permutationsLength; i += Constants.PhrasesPerSet)
             {

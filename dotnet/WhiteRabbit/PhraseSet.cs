@@ -7,7 +7,7 @@
     {
         public long[] Buffer;
 
-        public unsafe PhraseSet(Word[] words, long[] permutations, int offset, int numberOfCharacters)
+        public unsafe PhraseSet(Word[] words, ulong[] permutations, int offset, int numberOfCharacters)
         {
             Debug.Assert(numberOfCharacters + words.Length - 1 < 27);
 
@@ -18,7 +18,7 @@
                 long* longBuffer = (long*)bufferPointer;
                 int numberOfWords = words.Length;
 
-                fixed (long* permutationsPointer = permutations)
+                fixed (ulong* permutationsPointer = permutations)
                 {
                     var currentPermutationPointer = permutationsPointer + offset;
                     for (var i = 0; i < Constants.PhrasesPerSet; i++, currentPermutationPointer++)

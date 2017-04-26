@@ -78,7 +78,7 @@
                         {
                             var phrase = ToString(phraseSet, i);
                             var hash = ComputeFullMD5(phrase);
-                            Console.WriteLine($"Found phrase for {hash}: {phrase}; time from start is {stopwatch.Elapsed}");
+                            Console.WriteLine($"Found phrase for {hash} ({hashesFirstComponents[i]:x8}): {phrase}; time from start is {stopwatch.Elapsed}");
                         }
                     }
                 });
