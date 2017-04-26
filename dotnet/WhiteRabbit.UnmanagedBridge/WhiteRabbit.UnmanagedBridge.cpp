@@ -49,6 +49,7 @@ void WhiteRabbitUnmanagedBridge::MD5Unmanaged::FillPhraseSet(__int64* bufferPoin
     unsigned __int64 permutations[PHRASES_PER_SET];
     __int32 cumulativeWordOffsets[PHRASES_PER_SET];
     __int32 permutationOffsetInBytes = permutationOffset * sizeof(*permutations);
+
 #define INIT_DATA(phraseNumber) \
     permutations[phraseNumber] = *(unsigned __int64*)(((char*)permutationsPointer) + permutationOffsetInBytes + phraseNumber * sizeof(*permutations)); \
     cumulativeWordOffsets[phraseNumber] = 0;
@@ -70,18 +71,35 @@ void WhiteRabbitUnmanagedBridge::MD5Unmanaged::FillPhraseSet(__int64* bufferPoin
     INIT_DATA(14);
     INIT_DATA(15);
 
+#define PROCESS_WORD(phraseNumber) \
+    { \
+        auto currentWord = allWordsPointer + wordIndexes[permutations[phraseNumber] & 15] * 128; \
+        permutations[phraseNumber] = permutations[phraseNumber] >> 4; \
+        bufferPointer[phraseNumber * 4 + 0] |= currentWord[cumulativeWordOffsets[phraseNumber] + 0]; \
+        bufferPointer[phraseNumber * 4 + 1] |= currentWord[cumulativeWordOffsets[phraseNumber] + 1]; \
+        bufferPointer[phraseNumber * 4 + 2] |= currentWord[cumulativeWordOffsets[phraseNumber] + 2]; \
+        bufferPointer[phraseNumber * 4 + 3] |= currentWord[cumulativeWordOffsets[phraseNumber] + 3]; \
+        cumulativeWordOffsets[phraseNumber] += (__int32)currentWord[127]; \
+    }
+
     for (auto j = 0; j < numberOfWords; j++)
     {
-        for (auto i = 0; i < PHRASES_PER_SET; i++)
-        {
-            auto currentWord = allWordsPointer + wordIndexes[permutations[i] & 15] * 128;
-            permutations[i] = permutations[i] >> 4;
-            bufferPointer[i * 4 + 0] |= currentWord[cumulativeWordOffsets[i] + 0];
-            bufferPointer[i * 4 + 1] |= currentWord[cumulativeWordOffsets[i] + 1];
-            bufferPointer[i * 4 + 2] |= currentWord[cumulativeWordOffsets[i] + 2];
-            bufferPointer[i * 4 + 3] |= currentWord[cumulativeWordOffsets[i] + 3];
-            cumulativeWordOffsets[i] += (__int32)currentWord[127];
-        }
+        PROCESS_WORD(0);
+        PROCESS_WORD(1);
+        PROCESS_WORD(2);
+        PROCESS_WORD(3);
+        PROCESS_WORD(4);
+        PROCESS_WORD(5);
+        PROCESS_WORD(6);
+        PROCESS_WORD(7);
+        PROCESS_WORD(8);
+        PROCESS_WORD(9);
+        PROCESS_WORD(10);
+        PROCESS_WORD(11);
+        PROCESS_WORD(12);
+        PROCESS_WORD(13);
+        PROCESS_WORD(14);
+        PROCESS_WORD(15);
     }
 
     auto length = numberOfCharacters + numberOfWords - 1;
