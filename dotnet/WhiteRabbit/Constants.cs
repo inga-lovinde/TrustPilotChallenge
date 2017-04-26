@@ -2,6 +2,6 @@
 {
     internal class Constants
     {
-        public const int PhrasesPerSet = 16;
+        public const int PhrasesPerSet = WhiteRabbitUnmanagedBridge.MD5Unmanaged.PhrasesPerSet;
     }
 }
