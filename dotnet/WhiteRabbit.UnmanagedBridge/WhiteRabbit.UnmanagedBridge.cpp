@@ -9,7 +9,7 @@ void WhiteRabbitUnmanagedBridge::MD5Unmanaged::ComputeMD5(unsigned __int32 * inp
 {
 #if AVX2
     md5(input + 0 * 8 * 8, output + 0 * 8);
-    md5(input + 1 * 8 * 8, output + 0 * 8);
+    md5(input + 1 * 8 * 8, output + 1 * 8);
 #elif SIMD
     md5(input + 0 * 8 * 4, output + 0 * 4);
     md5(input + 1 * 8 * 4, output + 1 * 4);

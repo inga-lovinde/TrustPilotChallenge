@@ -19,14 +19,14 @@ typedef __m256i MD5Vector;
 
 #define CREATE_VECTOR(a) _mm256_set1_epi32(a)
 #define CREATE_VECTOR_FROM_INPUT(input, offset) _mm256_set_epi32( \
-    input[offset + 0 * 8], \
-    input[offset + 1 * 8], \
-    input[offset + 2 * 8], \
-    input[offset + 3 * 8], \
-    input[offset + 4 * 8], \
-    input[offset + 5 * 8], \
+    input[offset + 7 * 8], \
     input[offset + 6 * 8], \
-    input[offset + 7 * 8])
+    input[offset + 5 * 8], \
+    input[offset + 4 * 8], \
+    input[offset + 3 * 8], \
+    input[offset + 2 * 8], \
+    input[offset + 1 * 8], \
+    input[offset + 0 * 8])
 
 #define WRITE_TO_OUTPUT(a, output) \
     ((unsigned __int64*)output)[0] = a.m256i_u64[0]; \
