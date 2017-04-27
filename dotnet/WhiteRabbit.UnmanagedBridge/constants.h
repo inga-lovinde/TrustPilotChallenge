@@ -1,3 +1,3 @@
 #pragma once
 
-#define PHRASES_PER_SET 16
+#define PHRASES_PER_SET 8

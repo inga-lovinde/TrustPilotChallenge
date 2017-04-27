@@ -10,7 +10,7 @@ void WhiteRabbitUnmanagedBridge::MD5Unmanaged::ComputeMD5(unsigned __int32 * inp
 {
 #if AVX2
     md5(input + 0 * 8 * 8, output + 0 * 8);
-    md5(input + 1 * 8 * 8, output + 1 * 8);
+    //md5(input + 1 * 8 * 8, output + 1 * 8);
 #elif SIMD
     md5(input + 0 * 8 * 4, output + 0 * 4);
     md5(input + 1 * 8 * 4, output + 1 * 4);
@@ -29,5 +29,5 @@ void WhiteRabbitUnmanagedBridge::MD5Unmanaged::ComputeMD5(unsigned __int32 * inp
 
 void WhiteRabbitUnmanagedBridge::MD5Unmanaged::FillPhraseSet(__int64* bufferPointer, __int64* allWordsPointer, __int32* wordIndexes, unsigned __int64* permutationsPointer, int permutationOffset, int numberOfCharacters, int numberOfWords)
 {
-    fillPhraseSet(bufferPointer, allWordsPointer, wordIndexes, permutationsPointer, permutationOffset, numberOfCharacters, numberOfWords);
+    fillPhraseSet(bufferPointer, (unsigned __int64*)allWordsPointer, wordIndexes, permutationsPointer, permutationOffset, numberOfCharacters, numberOfWords);
 }
