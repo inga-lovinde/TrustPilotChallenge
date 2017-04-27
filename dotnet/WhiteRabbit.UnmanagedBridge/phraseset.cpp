@@ -6,7 +6,7 @@
 
 #pragma unmanaged
 
-#define REPEAT(macro) \
+#define REPEAT_PHRASES(macro) \
     macro(0); \
     macro(1); \
     macro(2); \
@@ -16,30 +16,116 @@
     macro(6); \
     macro(7);
 
+#define INIT_WORD(phraseNumber) \
+    auto permutation = permutationsPointer[permutationOffset + phraseNumber]; \
+    unsigned __int64 cumulativeWordOffset = 0; \
+    auto phrase = avx2buffer[phraseNumber];
+
+#define PROCESS_WORD(phraseNumber, wordNumber) \
+    { \
+        auto currentWord = allWordsPointer + wordIndexes[permutation % 16] * 128; \
+        phrase = _mm256_or_si256(phrase, *(__m256i*)(currentWord + cumulativeWordOffset)); \
+        permutation >>= 4; \
+        cumulativeWordOffset += currentWord[127]; \
+    }
+
+#define DONE_WORD(phraseNumber) \
+    avx2buffer[phraseNumber] = phrase;
+
+#define REPEAT_WORDS3(phraseNumber) \
+    { \
+        INIT_WORD(phraseNumber); \
+        PROCESS_WORD(phraseNumber, 0); \
+        PROCESS_WORD(phraseNumber, 1); \
+        PROCESS_WORD(phraseNumber, 2); \
+        DONE_WORD(phraseNumber); \
+    }
+
+#define REPEAT_WORDS4(phraseNumber) \
+    { \
+        INIT_WORD(phraseNumber); \
+        PROCESS_WORD(phraseNumber, 0); \
+        PROCESS_WORD(phraseNumber, 1); \
+        PROCESS_WORD(phraseNumber, 2); \
+        PROCESS_WORD(phraseNumber, 3); \
+        DONE_WORD(phraseNumber); \
+    }
+
+#define REPEAT_WORDS5(phraseNumber) \
+    { \
+        INIT_WORD(phraseNumber); \
+        PROCESS_WORD(phraseNumber, 0); \
+        PROCESS_WORD(phraseNumber, 1); \
+        PROCESS_WORD(phraseNumber, 2); \
+        PROCESS_WORD(phraseNumber, 3); \
+        PROCESS_WORD(phraseNumber, 4); \
+        DONE_WORD(phraseNumber); \
+    }
+
+#define REPEAT_WORDS6(phraseNumber) \
+    { \
+        INIT_WORD(phraseNumber); \
+        PROCESS_WORD(phraseNumber, 0); \
+        PROCESS_WORD(phraseNumber, 1); \
+        PROCESS_WORD(phraseNumber, 2); \
+        PROCESS_WORD(phraseNumber, 3); \
+        PROCESS_WORD(phraseNumber, 4); \
+        PROCESS_WORD(phraseNumber, 5); \
+        DONE_WORD(phraseNumber); \
+    }
+
+#define REPEAT_WORDS7(phraseNumber) \
+    { \
+        INIT_WORD(phraseNumber); \
+        PROCESS_WORD(phraseNumber, 0); \
+        PROCESS_WORD(phraseNumber, 1); \
+        PROCESS_WORD(phraseNumber, 2); \
+        PROCESS_WORD(phraseNumber, 3); \
+        PROCESS_WORD(phraseNumber, 4); \
+        PROCESS_WORD(phraseNumber, 5); \
+        PROCESS_WORD(phraseNumber, 6); \
+        DONE_WORD(phraseNumber); \
+    }
+
+#define REPEAT_WORDS8(phraseNumber) \
+    { \
+        INIT_WORD(phraseNumber); \
+        PROCESS_WORD(phraseNumber, 0); \
+        PROCESS_WORD(phraseNumber, 1); \
+        PROCESS_WORD(phraseNumber, 2); \
+        PROCESS_WORD(phraseNumber, 3); \
+        PROCESS_WORD(phraseNumber, 4); \
+        PROCESS_WORD(phraseNumber, 5); \
+        PROCESS_WORD(phraseNumber, 6); \
+        PROCESS_WORD(phraseNumber, 7); \
+        DONE_WORD(phraseNumber); \
+    }
+
 
 void fillPhraseSet(__int64* bufferPointer, unsigned __int64* allWordsPointer, __int32* wordIndexes, unsigned __int64* permutationsPointer, int permutationOffset, int numberOfCharacters, int numberOfWords)
 {
-    unsigned __int64 permutations[PHRASES_PER_SET];
-    unsigned __int64 cumulativeWordOffsets = 0;
-
     auto avx2buffer = (__m256i*)bufferPointer;
 
-#define INIT_DATA(phraseNumber) \
-    permutations[phraseNumber] = permutationsPointer[permutationOffset + phraseNumber]; \
-
-    REPEAT(INIT_DATA);
-
-#define PROCESS_WORD(phraseNumber) \
-    { \
-        auto currentWord = allWordsPointer + wordIndexes[permutations[phraseNumber] % 16] * 128; \
-        permutations[phraseNumber] >>= 4; \
-        avx2buffer[phraseNumber] = _mm256_or_si256(avx2buffer[phraseNumber], *(__m256i*)(currentWord + ((cumulativeWordOffsets >> (8 * (phraseNumber % 8))) % 256))); \
-        cumulativeWordOffsets += (((unsigned __int64*)currentWord)[127]) << (8 * (phraseNumber % 8)); \
-    }
-
-    for (auto j = 0; j < numberOfWords; j++)
+    switch (numberOfWords)
     {
-        REPEAT(PROCESS_WORD);
+    case 3:
+        REPEAT_PHRASES(REPEAT_WORDS3);
+        break;
+    case 4:
+        REPEAT_PHRASES(REPEAT_WORDS4);
+        break;
+    case 5:
+        REPEAT_PHRASES(REPEAT_WORDS5);
+        break;
+    case 6:
+        REPEAT_PHRASES(REPEAT_WORDS6);
+        break;
+    case 7:
+        REPEAT_PHRASES(REPEAT_WORDS7);
+        break;
+    case 8:
+        REPEAT_PHRASES(REPEAT_WORDS8);
+        break;
     }
 
     auto length = numberOfCharacters + numberOfWords - 1;
@@ -48,8 +134,8 @@ void fillPhraseSet(__int64* bufferPointer, unsigned __int64* allWordsPointer, __
 #define FILL_PHRASE_LAST_BYTE(phraseNumber) ((unsigned char*)bufferPointer)[length + phraseNumber * 32] = 128;
 #define FILL_PHRASE_SET_LENGTH(phraseNumber) ((unsigned __int32*)bufferPointer)[7 + phraseNumber * 8] = lengthInBits;
 
-    REPEAT(FILL_PHRASE_LAST_BYTE);
-    REPEAT(FILL_PHRASE_SET_LENGTH);
+    REPEAT_PHRASES(FILL_PHRASE_LAST_BYTE);
+    REPEAT_PHRASES(FILL_PHRASE_SET_LENGTH);
 }
 
 #pragma managed
