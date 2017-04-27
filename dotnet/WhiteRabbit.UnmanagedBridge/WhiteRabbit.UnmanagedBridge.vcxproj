@@ -135,6 +135,7 @@
   <ItemGroup>
     <ClInclude Include="constants.h" />
     <ClInclude Include="md5.h" />
+    <ClInclude Include="phraseset.h" />
     <ClInclude Include="resource.h" />
     <ClInclude Include="Stdafx.h" />
     <ClInclude Include="WhiteRabbit.UnmanagedBridge.h" />
@@ -142,6 +143,7 @@
   <ItemGroup>
     <ClCompile Include="AssemblyInfo.cpp" />
     <ClCompile Include="md5.cpp" />
+    <ClCompile Include="phraseset.cpp" />
     <ClCompile Include="Stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
