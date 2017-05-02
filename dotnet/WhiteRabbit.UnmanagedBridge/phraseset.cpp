@@ -14,7 +14,15 @@
     macro(4); \
     macro(5); \
     macro(6); \
-    macro(7);
+    macro(7); \
+    macro(8); \
+    macro(9); \
+    macro(10); \
+    macro(11); \
+    macro(12); \
+    macro(13); \
+    macro(14); \
+    macro(15);
 
 #define INIT_WORD(phraseNumber) \
     auto permutation = permutationsPointer[permutationOffset + phraseNumber]; \
