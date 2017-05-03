@@ -1,5 +1,6 @@
 ﻿namespace WhiteRabbit
 {
+    using System;
     using System.Collections.Generic;
     using System.Collections.Immutable;
     using System.Linq;
@@ -9,20 +10,6 @@
     /// </summary>
     internal static class Flattener
     {
-        // Slow universal implementation
-        private static IEnumerable<ImmutableStack<T>> FlattenAny<T>(ImmutableStack<T[]> phrase)
-        {
-            if (phrase.IsEmpty)
-            {
-                return new[] { ImmutableStack.Create<T>() };
-            }
-
-            T[] wordVariants;
-            var newStack = phrase.Pop(out wordVariants);
-            return FlattenAny(newStack).SelectMany(remainder => wordVariants.Select(word => remainder.Push(word)));
-        }
-
-        // Fast hard-coded implementation for 3 words
         private static IEnumerable<T[]> Flatten3<T>(T[][] phrase)
         {
             foreach (var item0 in phrase[0])
@@ -36,7 +23,6 @@
                 };
         }
 
-        // Fast hard-coded implementation for 4 words
         private static IEnumerable<T[]> Flatten4<T>(T[][] phrase)
         {
             foreach (var item0 in phrase[0])
@@ -52,7 +38,6 @@
                 };
         }
 
-        // Fast hard-coded implementation for 5 words
         private static IEnumerable<T[]> Flatten5<T>(T[][] phrase)
         {
             foreach (var item0 in phrase[0])
@@ -70,7 +55,6 @@
                 };
         }
 
-        // Fast hard-coded implementation for 6 words
         private static IEnumerable<T[]> Flatten6<T>(T[][] phrase)
         {
             foreach (var item0 in phrase[0])
@@ -90,7 +74,6 @@
                 };
         }
 
-        // Fast hard-coded implementation for 7 words
         private static IEnumerable<T[]> Flatten7<T>(T[][] phrase)
         {
             foreach (var item0 in phrase[0])
@@ -112,7 +95,6 @@
                 };
         }
 
-        // Fast hard-coded implementation for 7 words
         private static IEnumerable<T[]> Flatten8<T>(T[][] phrase)
         {
             foreach (var item0 in phrase[0])
@@ -136,6 +118,58 @@
                 };
         }
 
+        private static IEnumerable<T[]> Flatten9<T>(T[][] phrase)
+        {
+            foreach (var item0 in phrase[0])
+            foreach (var item1 in phrase[1])
+            foreach (var item2 in phrase[2])
+            foreach (var item3 in phrase[3])
+            foreach (var item4 in phrase[4])
+            foreach (var item5 in phrase[5])
+            foreach (var item6 in phrase[6])
+            foreach (var item7 in phrase[7])
+            foreach (var item8 in phrase[8])
+                yield return new T[]
+                {
+                    item0,
+                    item1,
+                    item2,
+                    item3,
+                    item4,
+                    item5,
+                    item6,
+                    item7,
+                    item8,
+                };
+        }
+
+        private static IEnumerable<T[]> Flatten10<T>(T[][] phrase)
+        {
+            foreach (var item0 in phrase[0])
+            foreach (var item1 in phrase[1])
+            foreach (var item2 in phrase[2])
+            foreach (var item3 in phrase[3])
+            foreach (var item4 in phrase[4])
+            foreach (var item5 in phrase[5])
+            foreach (var item6 in phrase[6])
+            foreach (var item7 in phrase[7])
+            foreach (var item8 in phrase[8])
+            foreach (var item9 in phrase[9])
+                yield return new T[]
+                {
+                    item0,
+                    item1,
+                    item2,
+                    item3,
+                    item4,
+                    item5,
+                    item6,
+                    item7,
+                    item8,
+                    item9,
+                };
+        }
+
         public static IEnumerable<T[]> Flatten<T>(T[][] wordVariants)
         {
             switch (wordVariants.Length)
@@ -152,8 +186,12 @@
                     return Flatten7(wordVariants);
                 case 8:
                     return Flatten8(wordVariants);
+                case 9:
+                    return Flatten9(wordVariants);
+                case 10:
+                    return Flatten10(wordVariants);
                 default:
-                    return FlattenAny(ImmutableStack.Create(wordVariants)).Select(words => words.ToArray());
+                    throw new ArgumentOutOfRangeException(nameof(wordVariants));
             }
         }
     }

@@ -34,49 +34,36 @@ WhiteRabbit.exe < wordlist
 Performance
 ===========
 
-Memory usage is minimal (for that kind of task), less than 10MB.
+Memory usage is minimal (for that kind of task), less than 10MB (25MB for MaxNumberOfWords = 8).
 
 It is also somewhat optimized for likely intended phrases, as anagrams consisting of longer words are generated first.
 That's why the given hashes are solved much sooner than it takes to check all anagrams.
 
 Anagrams generation is not parallelized, as even single-threaded performance for 4-word anagrams is high enough; and 5-word (or larger) anagrams are frequent enough for most of the time being spent on computing hashes, with full CPU load.
 
-Multi-threaded performance with RyuJIT (.NET 4.6, 64-bit system) on laptop with dual-core Sandy Bridge @2.6GHz (without AVX2 support) is as follows (excluding initialization time of 0.2 seconds), for different maximum allowed words in an anagram:
+Multi-threaded performance with RyuJIT (.NET 4.6, 64-bit system) on i5-6500 is as follows (excluding initialization time of 0.2 seconds), for different maximum allowed words in an anagram:
 
-Number of words|Time to check all anagrams no longer than that|Time to solve "easy" hash|Time to solve "more difficult" hash|Time to solve "hard" hash|Number of anagrams no longer than that (see note below)
----------------|----------------------------------------------|-------------------------|-----------------------------------|-------------------------|-------------------------------------------------------
+Number of words|Time to check all anagrams no longer than that|Time to solve "easy" hash|Time to solve "more difficult" hash|Time to solve "hard" hash|Number of unique anagrams no longer than that
+---------------|----------------------------------------------|-------------------------|-----------------------------------|-------------------------|---------------------------------------------
 3|0.1s||||4560
-4|0.8s|||0.15s|7,433,016
-5|87s|1s|0.3s|2s|1,348,876,896
-6|1 hour (?)|10s|1.7s|25s|58,837,302,096
-7|11 hours (?)|78s|9s|3.5 minutes|1,108,328,708,976
-8||7.5 minutes|50s|20 minutes|12,089,249,231,856
-9|||||88,977,349,731,696
-10|||||482,627,715,786,096
-11|||||2,030,917,440,675,696
-12|||||6,813,402,098,518,896
-13|||||18,437,325,782,691,696
-14|||||40,367,286,468,925,296
-15|||||71,561,858,517,565,296
-16|||||103,280,807,987,773,296
-17|||||123,910,678,817,341,296
-18|||||130,313,052,523,069,296
+4|0.8s|||0.15s|7,431,984
+5|27s|0.4s|0.12s|0.75s|1,347,437,484
+6|16.5 minutes|3s|0.5s|7.3s|58,405,904,844
+7|5 hours|16s|2s|47s|1,070,307,744,114
+8|49 hours|61s|6.3s|3.2 minutes|10,893,594,396,594
+9||2.5 minutes|13s|9.5 minutes|70,596,864,409,954
+10||5 minutes|21s|17.5 minutes|314,972,701,475,754
 
 Note that all measurements were done on a Release build; Debug build is significantly slower.
 
 For comparison, certain other solutions available on GitHub seem to require 3 hours to find all 3-word anagrams. This solution is faster by 6-7 orders of magnitude (it finds and checks all 4-word anagrams in 1/10000th fraction of time required for other solution just to find all 3-word anagrams, with no MD5 calculations).
-
-Also, note that anagram counts are inflated for the sake of code simplicity.
-E.g. for phrase "aabbc" and dictionary [ab, ba, c] there are four possible set of words adding up to the source phrase: [ab, ab, c], [ab, ba, c], [ba, ab, c], [ba, ba, c].
-My implementation regards these sets as sets of different words, and applies all possible permutations to the every set, even if it will result in the same set.
-For the example above, my application would produce 24 anagrams (with six permutations for every of the four sets), although actually there are only 12 different anagrams.
 
 Conditional compilation symbols
 ===============================
 
 * Define `SINGLE_THREADED` to use standard enumerables instead of ParallelEnumerable (useful for profiling).
 
-* Define `DEBUG`, or build in debug mode, to get the total number of anagrams (not optimized, memory-hogging).
+* Define `DEBUG`, or build in debug mode, to get the total number of anagrams (not optimized).
 
 Implementation notes
 ====================

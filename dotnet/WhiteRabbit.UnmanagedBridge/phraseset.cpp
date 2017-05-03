@@ -40,74 +40,82 @@
 #define DONE_WORD(phraseNumber) \
     avx2buffer[phraseNumber] = phrase;
 
-#define REPEAT_WORDS3(phraseNumber) \
+#define REPEAT_WORDS_SIMPLE1(phraseNumber) \
     { \
-        INIT_WORD(phraseNumber); \
         PROCESS_WORD(phraseNumber, 0); \
-        PROCESS_WORD(phraseNumber, 1); \
-        PROCESS_WORD(phraseNumber, 2); \
-        DONE_WORD(phraseNumber); \
     }
 
-#define REPEAT_WORDS4(phraseNumber) \
+#define REPEAT_WORDS_SIMPLE2(phraseNumber) \
     { \
-        INIT_WORD(phraseNumber); \
-        PROCESS_WORD(phraseNumber, 0); \
+        REPEAT_WORDS_SIMPLE1(phraseNumber); \
         PROCESS_WORD(phraseNumber, 1); \
-        PROCESS_WORD(phraseNumber, 2); \
-        PROCESS_WORD(phraseNumber, 3); \
-        DONE_WORD(phraseNumber); \
     }
 
-#define REPEAT_WORDS5(phraseNumber) \
+#define REPEAT_WORDS_SIMPLE3(phraseNumber) \
     { \
-        INIT_WORD(phraseNumber); \
-        PROCESS_WORD(phraseNumber, 0); \
-        PROCESS_WORD(phraseNumber, 1); \
+        REPEAT_WORDS_SIMPLE2(phraseNumber); \
         PROCESS_WORD(phraseNumber, 2); \
+    }
+
+#define REPEAT_WORDS_SIMPLE4(phraseNumber) \
+    { \
+        REPEAT_WORDS_SIMPLE3(phraseNumber); \
         PROCESS_WORD(phraseNumber, 3); \
+    }
+
+#define REPEAT_WORDS_SIMPLE5(phraseNumber) \
+    { \
+        REPEAT_WORDS_SIMPLE4(phraseNumber); \
         PROCESS_WORD(phraseNumber, 4); \
-        DONE_WORD(phraseNumber); \
     }
 
-#define REPEAT_WORDS6(phraseNumber) \
+#define REPEAT_WORDS_SIMPLE6(phraseNumber) \
     { \
-        INIT_WORD(phraseNumber); \
-        PROCESS_WORD(phraseNumber, 0); \
-        PROCESS_WORD(phraseNumber, 1); \
-        PROCESS_WORD(phraseNumber, 2); \
-        PROCESS_WORD(phraseNumber, 3); \
-        PROCESS_WORD(phraseNumber, 4); \
+        REPEAT_WORDS_SIMPLE5(phraseNumber); \
         PROCESS_WORD(phraseNumber, 5); \
-        DONE_WORD(phraseNumber); \
     }
 
-#define REPEAT_WORDS7(phraseNumber) \
+#define REPEAT_WORDS_SIMPLE7(phraseNumber) \
     { \
-        INIT_WORD(phraseNumber); \
-        PROCESS_WORD(phraseNumber, 0); \
-        PROCESS_WORD(phraseNumber, 1); \
-        PROCESS_WORD(phraseNumber, 2); \
-        PROCESS_WORD(phraseNumber, 3); \
-        PROCESS_WORD(phraseNumber, 4); \
-        PROCESS_WORD(phraseNumber, 5); \
+        REPEAT_WORDS_SIMPLE6(phraseNumber); \
         PROCESS_WORD(phraseNumber, 6); \
-        DONE_WORD(phraseNumber); \
     }
 
-#define REPEAT_WORDS8(phraseNumber) \
+#define REPEAT_WORDS_SIMPLE8(phraseNumber) \
     { \
-        INIT_WORD(phraseNumber); \
-        PROCESS_WORD(phraseNumber, 0); \
-        PROCESS_WORD(phraseNumber, 1); \
-        PROCESS_WORD(phraseNumber, 2); \
-        PROCESS_WORD(phraseNumber, 3); \
-        PROCESS_WORD(phraseNumber, 4); \
-        PROCESS_WORD(phraseNumber, 5); \
-        PROCESS_WORD(phraseNumber, 6); \
+        REPEAT_WORDS_SIMPLE7(phraseNumber); \
         PROCESS_WORD(phraseNumber, 7); \
+    }
+
+#define REPEAT_WORDS_SIMPLE9(phraseNumber) \
+    { \
+        REPEAT_WORDS_SIMPLE8(phraseNumber); \
+        PROCESS_WORD(phraseNumber, 8); \
+    }
+
+#define REPEAT_WORDS_SIMPLE10(phraseNumber) \
+    { \
+        REPEAT_WORDS_SIMPLE9(phraseNumber); \
+        PROCESS_WORD(phraseNumber, 9); \
+    }
+
+#define REPEAT_WORDS(phraseNumber, repeater) \
+    { \
+        INIT_WORD(phraseNumber); \
+        repeater(phraseNumber); \
         DONE_WORD(phraseNumber); \
     }
+
+#define REPEAT_WORDS1(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE1)
+#define REPEAT_WORDS2(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE2)
+#define REPEAT_WORDS3(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE3)
+#define REPEAT_WORDS4(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE4)
+#define REPEAT_WORDS5(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE5)
+#define REPEAT_WORDS6(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE6)
+#define REPEAT_WORDS7(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE7)
+#define REPEAT_WORDS8(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE8)
+#define REPEAT_WORDS9(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE9)
+#define REPEAT_WORDS10(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE10)
 
 
 void fillPhraseSet(__int64* bufferPointer, unsigned __int64* allWordsPointer, __int32* wordIndexes, unsigned __int64* permutationsPointer, int permutationOffset, int numberOfCharacters, int numberOfWords)
@@ -116,6 +124,12 @@ void fillPhraseSet(__int64* bufferPointer, unsigned __int64* allWordsPointer, __
 
     switch (numberOfWords)
     {
+    case 1:
+        REPEAT_PHRASES(REPEAT_WORDS1);
+        break;
+    case 2:
+        REPEAT_PHRASES(REPEAT_WORDS2);
+        break;
     case 3:
         REPEAT_PHRASES(REPEAT_WORDS3);
         break;
@@ -133,6 +147,12 @@ void fillPhraseSet(__int64* bufferPointer, unsigned __int64* allWordsPointer, __
         break;
     case 8:
         REPEAT_PHRASES(REPEAT_WORDS8);
+        break;
+    case 9:
+        REPEAT_PHRASES(REPEAT_WORDS9);
+        break;
+    case 10:
+        REPEAT_PHRASES(REPEAT_WORDS10);
         break;
     }
 

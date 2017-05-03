@@ -79,9 +79,14 @@
 
         public long GetPhrasesCount()
         {
-            return this.VectorsProcessor.GenerateSequences()
-                .Select(this.ConvertVectorsToWordsNumber)
-                .Sum(tuple => tuple.Item2 * PrecomputedPermutationsGenerator.GetPermutationsNumber(tuple.Item1));
+            var sums = this.VectorsProcessor.GenerateSequences();
+            return (from sum in sums
+                    let filter = ComputeFilter(sum)
+                    let wordsVariantsNumber = this.ConvertVectorsToWordsNumber(sum)
+                    let permutationsNumber = PrecomputedPermutationsGenerator.GetPermutationsNumber(sum.Length, filter)
+                    let total = wordsVariantsNumber * permutationsNumber
+                    select total)
+                    .Sum();
         }
 
         private static uint ComputeFilter(int[] vectors)
@@ -110,7 +115,7 @@
             return words;
         }
 
-        private Tuple<int, long> ConvertVectorsToWordsNumber(int[] vectors)
+        private long ConvertVectorsToWordsNumber(int[] vectors)
         {
             long result = 1;
             for (var i = 0; i < vectors.Length; i++)
@@ -118,7 +123,7 @@
                 result *= this.WordsDictionary[vectors[i]].Length;
             }
 
-            return Tuple.Create(vectors.Length, result);
+            return result;
         }
 
         private IEnumerable<PhraseSet> ConvertWordsToPhrases(int[] wordIndexes, uint filter)

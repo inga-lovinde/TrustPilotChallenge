@@ -6,19 +6,31 @@
 
     internal static class PrecomputedPermutationsGenerator
     {
-        private static ulong[][][] Permutations { get; } = Enumerable.Range(0, 9).Select(GeneratePermutations).ToArray();
+        static PrecomputedPermutationsGenerator()
+        {
+            Permutations = new ulong[Constants.MaxNumberOfWords + 1][][];
+            PermutationsNumbers = new long[Constants.MaxNumberOfWords + 1][];
+            for (var i = 0; i <= Constants.MaxNumberOfWords; i++)
+            {
+                var permutationsInfo = GeneratePermutations(i);
+                Permutations[i] = permutationsInfo.Item1;
+                PermutationsNumbers[i] = permutationsInfo.Item2;
+            }
+        }
 
-        private static long[] PermutationsNumbers { get; } = GeneratePermutationsNumbers().Take(19).ToArray();
+        private static ulong[][][] Permutations { get; }
+
+        private static long[][] PermutationsNumbers { get; }
 
         public static ulong[] HamiltonianPermutations(int n, uint filter) => Permutations[n][filter];
 
-        public static long GetPermutationsNumber(int n) => PermutationsNumbers[n];
+        public static long GetPermutationsNumber(int n, uint filter) => PermutationsNumbers[n][filter];
 
-        private static ulong[][] GeneratePermutations(int n)
+        private static Tuple<ulong[][], long[]> GeneratePermutations(int n)
         {
             if (n == 0)
             {
-                return new ulong[0][];
+                return Tuple.Create(new ulong[0][], new long[0]);
             }
 
             var allPermutations = PermutationsGenerator.HamiltonianPermutations(n)
@@ -26,27 +38,41 @@
                 .ToArray();
 
             var statesCount = (uint)1 << (n - 1);
+            var resultUnpadded = new PermutationInfo[statesCount][];
+
+            resultUnpadded[0] = allPermutations;
+            for (uint i = 1; i < statesCount; i++)
+            {
+                var mask = i;
+                mask |= mask >> 1;
+                mask |= mask >> 2;
+                mask |= mask >> 4;
+                mask |= mask >> 8;
+                mask |= mask >> 16;
+                mask = mask >> 1;
+                var existing = i & mask;
+                var seniorBit = i ^ existing;
+                var position = 0;
+                while (seniorBit != 0)
+                {
+                    seniorBit = seniorBit >> 1;
+                    position++;
+                }
+
+                resultUnpadded[i] = resultUnpadded[existing]
+                    .Where(info => ((info.PermutationInverse >> (4 * (position - 1))) % 16 < (info.PermutationInverse >> (4 * position)) % 16))
+                    .ToArray();
+            }
+
             var result = new ulong[statesCount][];
+            var numbers = new long[statesCount];
             for (uint i = 0; i < statesCount; i++)
             {
-                result[i] = PadToWholeChunks(FilterPermutations(allPermutations, i).ToArray(), Constants.PhrasesPerSet);
+                result[i] = PadToWholeChunks(resultUnpadded[i], Constants.PhrasesPerSet);
+                numbers[i] = resultUnpadded[i].LongLength;
             }
 
-            return result;
-        }
-
-        private static IEnumerable<ulong> FilterPermutations(IEnumerable<ulong> permutations, uint state)
-        {
-            for (int position = 0; position < 16; position++)
-            {
-                if (((state >> position) & 1) != 0)
-                {
-                    var innerPosition = (uint)position;
-                    permutations = permutations.Where(permutation => IsOrderPreserved(permutation, innerPosition));
-                }
-            }
-
-            return permutations;
+            return Tuple.Create(result, numbers);
         }
 
         public static bool IsOrderPreserved(ulong permutation, uint position)
@@ -71,27 +97,41 @@
             throw new ApplicationException("Malformed permutation " + permutation + " for position " + position);
         }
 
-        private static T[] PadToWholeChunks<T>(T[] original, int chunkSize)
+        private static ulong[] PadToWholeChunks(PermutationInfo[] original, int chunkSize)
         {
+            ulong[] result;
             if (original.Length % chunkSize == 0)
             {
-                return original;
+                result = new ulong[original.Length];
+            }
+            else
+            {
+                result = new ulong[original.Length + chunkSize - (original.Length % chunkSize)];
             }
 
-            return original.Concat(Enumerable.Repeat(default(T), chunkSize - (original.Length % chunkSize))).ToArray();
+            for (var i = 0; i < original.Length; i++)
+            {
+                result[i] = original[i].Permutation;
+            }
+
+            return result;
         }
 
-        private static ulong FormatPermutation(PermutationsGenerator.Permutation permutation)
+        private static PermutationInfo FormatPermutation(PermutationsGenerator.Permutation permutation)
         {
             System.Diagnostics.Debug.Assert(permutation.PermutationData.Length <= 16);
 
             ulong result = 0;
+            ulong resultInverse = 0;
             for (var i = 0; i < permutation.PermutationData.Length; i++)
             {
-                result |= (ulong)(permutation.PermutationData[i]) << (4 * i);
+                var source = i;
+                var target = permutation.PermutationData[i];
+                result |= (ulong)(target) << (4 * source);
+                resultInverse |= (ulong)(source) << (4 * target);
             }
 
-            return result;
+            return new PermutationInfo { Permutation = result, PermutationInverse = resultInverse };
         }
 
         private static IEnumerable<long> GeneratePermutationsNumbers()
@@ -106,6 +146,12 @@
                 yield return result;
                 i++;
             }
+        }
+
+        private struct PermutationInfo
+        {
+            public ulong Permutation;
+            public ulong PermutationInverse;
         }
     }
 }

@@ -1,12 +1,10 @@
 ﻿namespace WhiteRabbit
 {
     using System;
-    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.Configuration;
     using System.Diagnostics;
     using System.Linq;
-    using System.Numerics;
     using System.Security.Cryptography;
     using System.Text;
 
@@ -28,9 +26,15 @@
 
             var maxWordsInPhrase = int.Parse(ConfigurationManager.AppSettings["MaxWordsInPhrase"]);
 
-            if (sourceChars.Length + maxWordsInPhrase > 27)
+            if (sourceChars.Length + maxWordsInPhrase > 28)
             {
-                Console.WriteLine("Only anagrams of up to 27 characters are allowed");
+                Console.WriteLine("Only anagrams of up to 27 characters (including whitespace) are allowed");
+                return;
+            }
+
+            if (maxWordsInPhrase > Constants.MaxNumberOfWords)
+            {
+                Console.WriteLine($"Only anagrams of up to {Constants.MaxNumberOfWords} words are allowed");
                 return;
             }
 
