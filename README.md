@@ -45,12 +45,12 @@ Multi-threaded performance with RyuJIT (.NET 4.6, 64-bit system) on i5-6500 is a
 
 Number of words|Time to check all anagrams no longer than that|Time to solve "easy" hash|Time to solve "more difficult" hash|Time to solve "hard" hash|Number of unique anagrams no longer than that
 ---------------|----------------------------------------------|-------------------------|-----------------------------------|-------------------------|---------------------------------------------
-3|0.1s||||4560
-4|0.8s|||0.15s|7,431,984
-5|27s|0.4s|0.12s|0.75s|1,347,437,484
-6|16.5 minutes|3s|0.5s|7.3s|58,405,904,844
-7|5 hours|16s|2s|47s|1,070,307,744,114
-8|49 hours|61s|6.3s|3.2 minutes|10,893,594,396,594
+3|0.04s||||4560
+4|0.65s|||0.1s|7,431,984
+5|21s|0.3s|0.1s|0.6s|1,347,437,484
+6|12.5 minutes|2.2s|0.4s|5.4s|58,405,904,844
+7|5 hours|12.5s|1.6s|35s|1,070,307,744,114
+8|49 hours|46s|4.7s|2.5 minutes|10,893,594,396,594
 9||2.5 minutes|13s|9.5 minutes|70,596,864,409,954
 10||5 minutes|21s|17.5 minutes|314,972,701,475,754
 

@@ -4,7 +4,9 @@
     using System.Collections.Generic;
     using System.Configuration;
     using System.Diagnostics;
+    using System.IO;
     using System.Linq;
+    using System.Numerics;
     using System.Security.Cryptography;
     using System.Text;
 
@@ -49,10 +51,18 @@
                 Console.WriteLine("Only 64-bit systems are supported due to MD5Digest optimizations");
             }
 
-            var expectedHashesFirstComponents = ConfigurationManager.AppSettings["ExpectedHashes"]
-                .Split(',')
-                .Select(hash => HexadecimalStringToUnsignedIntArray(hash)[0])
-                .ToArray();
+            Vector<uint> expectedHashesFirstComponents;
+            {
+                var expectedHashesFirstComponentsArray = new uint[Vector<uint>.Count];
+                int i = 0;
+                foreach (var expectedHash in ConfigurationManager.AppSettings["ExpectedHashes"].Split(','))
+                {
+                    expectedHashesFirstComponentsArray[i] = HexadecimalStringToUnsignedIntArray(expectedHash)[0];
+                    i++;
+                }
+
+                expectedHashesFirstComponents = new Vector<uint>(expectedHashesFirstComponentsArray);
+            }
 
             var processor = new StringsProcessor(
                 Encoding.ASCII.GetBytes(sourcePhrase),
@@ -78,7 +88,7 @@
                             sourceChars == ToOrderedChars(ToString(phraseSet, i)),
                             $"StringsProcessor produced incorrect anagram: {ToString(phraseSet, i)}");
 
-                        if (Array.IndexOf(expectedHashesFirstComponents, hashesFirstComponents[i]) >= 0)
+                        if (Vector.EqualsAny(expectedHashesFirstComponents, new Vector<uint>(hashesFirstComponents[i])))
                         {
                             var phrase = ToString(phraseSet, i);
                             var hash = ComputeFullMD5(phrase);
