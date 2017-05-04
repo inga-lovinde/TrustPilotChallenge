@@ -78,24 +78,23 @@
 
             stopwatch.Restart();
 
-            processor.GeneratePhrases()
-                .ForAll(phraseSet =>
+            processor.CheckPhrases(phraseSet =>
+            {
+                var hashesFirstComponents = MD5Digest.Compute(phraseSet);
+                for (var i = 0; i < Constants.PhrasesPerSet; i++)
                 {
-                    var hashesFirstComponents = MD5Digest.Compute(phraseSet);
-                    for (var i = 0; i < Constants.PhrasesPerSet; i++)
-                    {
-                        Debug.Assert(
-                            sourceChars == ToOrderedChars(ToString(phraseSet, i)),
-                            $"StringsProcessor produced incorrect anagram: {ToString(phraseSet, i)}");
+                    Debug.Assert(
+                        sourceChars == ToOrderedChars(ToString(phraseSet, i)),
+                        $"StringsProcessor produced incorrect anagram: {ToString(phraseSet, i)}");
 
-                        if (Vector.EqualsAny(expectedHashesFirstComponents, new Vector<uint>(hashesFirstComponents[i])))
-                        {
-                            var phrase = ToString(phraseSet, i);
-                            var hash = ComputeFullMD5(phrase);
-                            Console.WriteLine($"Found phrase for {hash} ({hashesFirstComponents[i]:x8}): {phrase}; time from start is {stopwatch.Elapsed}");
-                        }
+                    if (Vector.EqualsAny(expectedHashesFirstComponents, new Vector<uint>(hashesFirstComponents[i])))
+                    {
+                        var phrase = ToString(phraseSet, i);
+                        var hash = ComputeFullMD5(phrase);
+                        Console.WriteLine($"Found phrase for {hash} ({hashesFirstComponents[i]:x8}): {phrase}; time from start is {stopwatch.Elapsed}");
                     }
-                });
+                }
+            });
 
             Console.WriteLine($"Done; time from start: {stopwatch.Elapsed}");
 
@@ -145,15 +144,5 @@
         {
             return new string(source.Where(ch => ch != ' ').OrderBy(ch => ch).ToArray());
         }
-
-#if SINGLE_THREADED
-        private static void ForAll<T>(this IEnumerable<T> source, Action<T> action)
-        {
-            foreach (var entry in source)
-            {
-                action(entry);
-            }
-        }
-#endif
     }
 }

@@ -59,22 +59,20 @@
 
         private int NumberOfCharacters { get; }
 
-#if SINGLE_THREADED
-        public IEnumerable<PhraseSet> GeneratePhrases()
-#else
-        public ParallelQuery<PhraseSet> GeneratePhrases()
-#endif
+        public void CheckPhrases(Action<PhraseSet> action)
         {
             // task of finding anagrams could be reduced to the task of finding sequences of dictionary vectors with the target sum
             var sums = this.VectorsProcessor.GenerateSequences();
 
             // converting sequences of vectors to the sequences of words...
-            return from sum in sums
+            var result = from sum in sums.AsParallel()
                    let filter = ComputeFilter(sum)
                    let wordsVariants = this.ConvertVectorsToWordIndexes(sum)
                    from wordsArray in Flattener.Flatten(wordsVariants)
                    from phraseSet in this.ConvertWordsToPhrases(wordsArray, filter)
                    select phraseSet;
+
+            result.ForAll(action);
         }
 
         public long GetPhrasesCount()
