@@ -2,17 +2,24 @@
 {
     using System.Diagnostics;
     using System.Runtime.CompilerServices;
+    using WhiteRabbitUnmanagedBridge;
 
     // Anagram representation optimized for MD5
     internal struct PhraseSet
     {
-        public uint[] Buffer;
+        private uint[] Buffer;
 
-        public unsafe PhraseSet(Word[] allWords, int[] wordIndexes, ulong[] permutations, int permutationOffset, int numberOfCharacters)
+        public int Length;
+
+        public PhraseSet(int length)
+        {
+            this.Length = length;
+            this.Buffer = new uint[8 * length];
+        }
+
+        public unsafe void FillPhraseSet(Word[] allWords, int[] wordIndexes, ulong[] permutations, int permutationOffset, int numberOfCharacters)
         {
             Debug.Assert(numberOfCharacters + wordIndexes.Length - 1 < 27);
-
-            this.Buffer = new uint[8 * Constants.PhrasesPerSet];
 
             fixed (uint* bufferPointer = this.Buffer)
             {
@@ -22,10 +29,24 @@
                     {
                         fixed (Word* allWordsPointer = allWords)
                         {
-                            WhiteRabbitUnmanagedBridge.MD5Unmanaged.FillPhraseSet((long*)bufferPointer, (long*)allWordsPointer, wordIndexesPointer, permutationsPointer, permutationOffset, numberOfCharacters, wordIndexes.Length);
+                            MD5Unmanaged.FillPhraseSet(
+                                (long*)bufferPointer,
+                                (long*)allWordsPointer,
+                                wordIndexesPointer,
+                                permutationsPointer + permutationOffset,
+                                numberOfCharacters,
+                                wordIndexes.Length);
                         }
                     }
                 }
+            }
+        }
+
+        public unsafe void ComputeMD5()
+        {
+            fixed (uint* inputBuffer = this.Buffer)
+            {
+                MD5Unmanaged.ComputeMD5(inputBuffer);
             }
         }
 

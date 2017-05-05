@@ -25,9 +25,9 @@
     macro(15);
 
 #define INIT_WORD(phraseNumber) \
-    auto permutation = permutationsPointer[permutationOffset + phraseNumber]; \
+    auto permutation = permutationsPointer[phraseNumber]; \
     unsigned __int64 cumulativeWordOffset = 0; \
-    auto phrase = avx2buffer[phraseNumber];
+    auto phrase = _mm256_set1_epi32(0);
 
 #define PROCESS_WORD(phraseNumber, wordNumber) \
     { \
@@ -118,7 +118,7 @@
 #define REPEAT_WORDS10(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE10)
 
 
-void fillPhraseSet(__int64* bufferPointer, unsigned __int64* allWordsPointer, __int32* wordIndexes, unsigned __int64* permutationsPointer, int permutationOffset, int numberOfCharacters, int numberOfWords)
+void fillPhraseSet(__int64* bufferPointer, unsigned __int64* allWordsPointer, __int32* wordIndexes, unsigned __int64* permutationsPointer, int numberOfCharacters, int numberOfWords)
 {
     auto avx2buffer = (__m256i*)bufferPointer;
 

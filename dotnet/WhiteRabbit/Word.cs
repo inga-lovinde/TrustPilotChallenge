@@ -30,6 +30,24 @@
             }
         }
 
+        public unsafe byte[] Original
+        {
+            get
+            {
+                fixed (long* buffersPointer = this.Buffers)
+                {
+                    var length = buffersPointer[127] / 4;
+                    var result = new byte[length];
+                    for (var i = 0; i < length; i++)
+                    {
+                        result[i] = ((byte*)buffersPointer)[i];
+                    }
+
+                    return result;
+                }
+            }
+        }
+
         private static Word Empty { get; } = new Word();
     }
 }

@@ -27,7 +27,7 @@ void WhiteRabbitUnmanagedBridge::MD5Unmanaged::ComputeMD5(unsigned __int32 * inp
 #endif
 }
 
-void WhiteRabbitUnmanagedBridge::MD5Unmanaged::FillPhraseSet(__int64* bufferPointer, __int64* allWordsPointer, __int32* wordIndexes, unsigned __int64* permutationsPointer, int permutationOffset, int numberOfCharacters, int numberOfWords)
+void WhiteRabbitUnmanagedBridge::MD5Unmanaged::FillPhraseSet(__int64* bufferPointer, __int64* allWordsPointer, __int32* wordIndexes, unsigned __int64* permutationsPointer, int numberOfCharacters, int numberOfWords)
 {
-    fillPhraseSet(bufferPointer, (unsigned __int64*)allWordsPointer, wordIndexes, permutationsPointer, permutationOffset, numberOfCharacters, numberOfWords);
+    fillPhraseSet(bufferPointer, (unsigned __int64*)allWordsPointer, wordIndexes, permutationsPointer, numberOfCharacters, numberOfWords);
 }

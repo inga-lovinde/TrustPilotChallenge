@@ -68,12 +68,17 @@
             // converting sequences of vectors to the sequences of words...
             Parallel.ForEach(sums, new ParallelOptions { MaxDegreeOfParallelism = Constants.NumberOfThreads }, sum =>
             {
+                var phraseSet = new PhraseSet(Constants.PhrasesPerSet);
                 var filter = ComputeFilter(sum);
                 var wordsVariants = this.ConvertVectorsToWordIndexes(sum);
                 foreach (var wordsArray in Flattener.Flatten(wordsVariants))
                 {
-                    foreach (var phraseSet in this.ConvertWordsToPhrases(wordsArray, filter))
+                    //Console.WriteLine(new string(wordsArray.SelectMany(wordIndex => this.AllWords[wordIndex].Original).Select(b => (char)b).ToArray()));
+
+                    var permutations = PrecomputedPermutationsGenerator.HamiltonianPermutations(wordsArray.Length, filter);
+                    for (var i = 0; i < permutations.Length; i += Constants.PhrasesPerSet)
                     {
+                        phraseSet.FillPhraseSet(this.AllWords, wordsArray, permutations, i, this.NumberOfCharacters);
                         action(phraseSet);
                     }
                 }
@@ -127,16 +132,6 @@
             }
 
             return result;
-        }
-
-        private IEnumerable<PhraseSet> ConvertWordsToPhrases(int[] wordIndexes, uint filter)
-        {
-            var permutations = PrecomputedPermutationsGenerator.HamiltonianPermutations(wordIndexes.Length, filter);
-            var permutationsLength = permutations.Length;
-            for (var i = 0; i < permutationsLength; i += Constants.PhrasesPerSet)
-            {
-                yield return new PhraseSet(this.AllWords, wordIndexes, permutations, i, this.NumberOfCharacters);
-            }
         }
     }
 }
