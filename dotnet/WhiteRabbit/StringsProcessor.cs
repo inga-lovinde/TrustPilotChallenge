@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading.Tasks;
 
     internal sealed class StringsProcessor
     {
@@ -65,14 +66,18 @@
             var sums = this.VectorsProcessor.GenerateSequences();
 
             // converting sequences of vectors to the sequences of words...
-            var result = from sum in sums.AsParallel()
-                   let filter = ComputeFilter(sum)
-                   let wordsVariants = this.ConvertVectorsToWordIndexes(sum)
-                   from wordsArray in Flattener.Flatten(wordsVariants)
-                   from phraseSet in this.ConvertWordsToPhrases(wordsArray, filter)
-                   select phraseSet;
-
-            result.ForAll(action);
+            Parallel.ForEach(sums, new ParallelOptions { MaxDegreeOfParallelism = Constants.NumberOfThreads }, sum =>
+            {
+                var filter = ComputeFilter(sum);
+                var wordsVariants = this.ConvertVectorsToWordIndexes(sum);
+                foreach (var wordsArray in Flattener.Flatten(wordsVariants))
+                {
+                    foreach (var phraseSet in this.ConvertWordsToPhrases(wordsArray, filter))
+                    {
+                        action(phraseSet);
+                    }
+                }
+            });
         }
 
         public long GetPhrasesCount()

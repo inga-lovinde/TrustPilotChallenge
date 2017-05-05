@@ -47,10 +47,10 @@ Number of words|Time to check all anagrams no longer than that|Time to solve "ea
 ---------------|----------------------------------------------|-------------------------|-----------------------------------|-------------------------|---------------------------------------------
 3|0.04s||||4560
 4|0.65s|||0.1s|7,431,984
-5|21s|0.3s|0.1s|0.6s|1,347,437,484
-6|12.5 minutes|2.2s|0.4s|5.4s|58,405,904,844
-7|5 hours|12.5s|1.6s|35s|1,070,307,744,114
-8|49 hours|46s|4.7s|2.5 minutes|10,893,594,396,594
+5|19s|0.3s|0.1s|0.5s|1,347,437,484
+6|10.5 minutes|1.9s|0.35s|4.7s|58,405,904,844
+7|3.2 hours|11s|1.4s|31.5s|1,070,307,744,114
+8|49 hours|40s|4.1s|2.1 minutes|10,893,594,396,594
 9||2.5 minutes|13s|9.5 minutes|70,596,864,409,954
 10||5 minutes|21s|17.5 minutes|314,972,701,475,754
 
@@ -60,8 +60,6 @@ For comparison, certain other solutions available on GitHub seem to require 3 ho
 
 Conditional compilation symbols
 ===============================
-
-* Define `SINGLE_THREADED` to use standard enumerables instead of ParallelEnumerable (useful for profiling).
 
 * Define `DEBUG`, or build in debug mode, to get the total number of anagrams (not optimized).
 
