@@ -29,10 +29,14 @@ typedef __m256i MD5Vector;
     input[offset + 0 * 8])
 
 #define WRITE_TO_OUTPUT(a, output) \
-    ((unsigned __int64*)output)[0] = a.m256i_u64[0]; \
-    ((unsigned __int64*)output)[1] = a.m256i_u64[1]; \
-    ((unsigned __int64*)output)[2] = a.m256i_u64[2]; \
-    ((unsigned __int64*)output)[3] = a.m256i_u64[3];
+    output[7 + 0 * 8] = a.m256i_u32[0]; \
+    output[7 + 1 * 8] = a.m256i_u32[1]; \
+    output[7 + 2 * 8] = a.m256i_u32[2]; \
+    output[7 + 3 * 8] = a.m256i_u32[3]; \
+    output[7 + 4 * 8] = a.m256i_u32[4]; \
+    output[7 + 5 * 8] = a.m256i_u32[5]; \
+    output[7 + 6 * 8] = a.m256i_u32[6]; \
+    output[7 + 7 * 8] = a.m256i_u32[7];
 
 #elif SIMD
 
@@ -55,8 +59,10 @@ typedef __m128i MD5Vector;
     input[offset + 0 * 8])
 
 #define WRITE_TO_OUTPUT(a, output) \
-    ((unsigned __int64*)output)[0] = a.m128i_u64[0]; \
-    ((unsigned __int64*)output)[1] = a.m128i_u64[1];
+    output[7 + 0 * 8] = a.m128i_u32[0]; \
+    output[7 + 1 * 8] = a.m128i_u32[1]; \
+    output[7 + 2 * 8] = a.m128i_u32[2]; \
+    output[7 + 3 * 8] = a.m128i_u32[3];
 
 #else
 
@@ -74,7 +80,7 @@ typedef unsigned int MD5Vector;
 #define CREATE_VECTOR_FROM_INPUT(input, offset) (input[offset])
 
 #define WRITE_TO_OUTPUT(a, output) \
-    output[0] = a;
+    output[7] = a;
 #endif
 
 #define OP_NEG(a) OP_ANDNOT(a, CREATE_VECTOR(0xffffffff))
@@ -179,7 +185,7 @@ static const MD5Parameters Parameters = {
 #define Step4(r, a, b, c, d, k, w) StepOuter(r, a, b, OP_ADD(I(c, b, d), OP_ADD(CREATE_VECTOR(k), OP_ADD(a, w))))
 #define Step4E(r, a, b, c, d, k)   StepOuter(r, a, b, OP_ADD(I(c, b, d), OP_ADD(CREATE_VECTOR(k), a)))
 
-void md5(unsigned __int32 * input, unsigned __int32 * output)
+void md5(unsigned __int32 * input)
 {
     MD5Vector a = CREATE_VECTOR(Parameters.Init[0]);
     MD5Vector b = CREATE_VECTOR(Parameters.Init[1]);
@@ -262,6 +268,6 @@ void md5(unsigned __int32 * input, unsigned __int32 * output)
 
     a = OP_ADD(CREATE_VECTOR(Parameters.Init[0]), a);
 
-    WRITE_TO_OUTPUT(a, output);
+    WRITE_TO_OUTPUT(a, input);
 }
 #pragma managed

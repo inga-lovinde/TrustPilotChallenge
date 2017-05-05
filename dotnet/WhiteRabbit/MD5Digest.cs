@@ -7,18 +7,12 @@
     {
         // It only returns first component of MD5 hash
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static unsafe uint[] Compute(PhraseSet input)
+        public static unsafe void Compute(PhraseSet input)
         {
-            var result = new uint[Constants.PhrasesPerSet];
-            fixed (uint* resultPointer = result)
+            fixed (uint* inputBuffer = input.Buffer)
             {
-                fixed (long* inputBuffer = input.Buffer)
-                {
-                    MD5Unmanaged.ComputeMD5((uint*)inputBuffer, resultPointer);
-                }
+                MD5Unmanaged.ComputeMD5(inputBuffer);
             }
-
-            return result;
         }
     }
 }

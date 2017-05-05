@@ -80,7 +80,7 @@
 
             processor.CheckPhrases(phraseSet =>
             {
-                var hashesFirstComponents = MD5Digest.Compute(phraseSet);
+                MD5Digest.Compute(phraseSet);
                 for (var i = 0; i < Constants.PhrasesPerSet; i++)
                 {
                     Debug.Assert(
@@ -88,10 +88,11 @@
                         $"StringsProcessor produced incorrect anagram: {ToString(phraseSet, i)}");
 
                     if (Vector.EqualsAny(expectedHashesFirstComponents, new Vector<uint>(hashesFirstComponents[i])))
+                    if (Vector.EqualsAny(expectedHashesFirstComponents, new Vector<uint>(phraseSet.GetMD5(i))))
                     {
                         var phrase = ToString(phraseSet, i);
                         var hash = ComputeFullMD5(phrase);
-                        Console.WriteLine($"Found phrase for {hash} ({hashesFirstComponents[i]:x8}): {phrase}; time from start is {stopwatch.Elapsed}");
+                        Console.WriteLine($"Found phrase for {hash} ({phraseSet.GetMD5(i):x8}): {phrase}; time from start is {stopwatch.Elapsed}");
                     }
                 }
             });
