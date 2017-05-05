@@ -61,7 +61,6 @@
     <Compile Include="ByteArrayEqualityComparer.cs" />
     <Compile Include="Constants.cs" />
     <Compile Include="Flattener.cs" />
-    <Compile Include="MD5Digest.cs" />
     <Compile Include="PhraseSet.cs" />
     <Compile Include="PrecomputedPermutationsGenerator.cs" />
     <Compile Include="PermutationsGenerator.cs" />

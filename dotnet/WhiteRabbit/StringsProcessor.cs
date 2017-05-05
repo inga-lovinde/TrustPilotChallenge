@@ -66,23 +66,7 @@
             var sums = this.VectorsProcessor.GenerateSequences();
 
             // converting sequences of vectors to the sequences of words...
-            Parallel.ForEach(sums, new ParallelOptions { MaxDegreeOfParallelism = Constants.NumberOfThreads }, sum =>
-            {
-                var phraseSet = new PhraseSet(Constants.PhrasesPerSet);
-                var filter = ComputeFilter(sum);
-                var wordsVariants = this.ConvertVectorsToWordIndexes(sum);
-                foreach (var wordsArray in Flattener.Flatten(wordsVariants))
-                {
-                    //Console.WriteLine(new string(wordsArray.SelectMany(wordIndex => this.AllWords[wordIndex].Original).Select(b => (char)b).ToArray()));
-
-                    var permutations = PrecomputedPermutationsGenerator.HamiltonianPermutations(wordsArray.Length, filter);
-                    for (var i = 0; i < permutations.Length; i += Constants.PhrasesPerSet)
-                    {
-                        phraseSet.FillPhraseSet(this.AllWords, wordsArray, permutations, i, this.NumberOfCharacters);
-                        action(phraseSet);
-                    }
-                }
-            });
+            Parallel.ForEach(sums, new ParallelOptions { MaxDegreeOfParallelism = Constants.NumberOfThreads }, sum => ProcessSum(sum, action));
         }
 
         public long GetPhrasesCount()
@@ -132,6 +116,24 @@
             }
 
             return result;
+        }
+
+        private void ProcessSum(int[] sum, Action<PhraseSet> action)
+        {
+            var phraseSet = new PhraseSet(Constants.PhrasesPerSet);
+            var filter = ComputeFilter(sum);
+            var wordsVariants = this.ConvertVectorsToWordIndexes(sum);
+            foreach (var wordsArray in Flattener.Flatten(wordsVariants))
+            {
+                //Console.WriteLine(new string(wordsArray.SelectMany(wordIndex => this.AllWords[wordIndex].Original).Select(b => (char)b).ToArray()));
+
+                var permutations = PrecomputedPermutationsGenerator.HamiltonianPermutations(wordsArray.Length, filter);
+                for (var i = 0; i < permutations.Length; i += Constants.PhrasesPerSet)
+                {
+                    phraseSet.FillPhraseSet(this.AllWords, wordsArray, permutations, i, this.NumberOfCharacters);
+                    action(phraseSet);
+                }
+            }
         }
     }
 }

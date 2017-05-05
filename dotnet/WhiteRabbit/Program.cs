@@ -78,26 +78,27 @@
 
             stopwatch.Restart();
 
-            processor.CheckPhrases(phraseSet =>
-            {
-                phraseSet.ComputeMD5();
-                for (var i = 0; i < phraseSet.Length; i++)
-                {
-                    Debug.Assert(
-                        sourceChars == ToOrderedChars(ToString(phraseSet, i)),
-                        $"StringsProcessor produced incorrect anagram: {ToString(phraseSet, i)}");
-
-                    if (Vector.EqualsAny(expectedHashesFirstComponents, new Vector<uint>(phraseSet.GetMD5(i))))
-                    {
-                        var phrase = ToString(phraseSet, i);
-                        var hash = ComputeFullMD5(phrase);
-                        Console.WriteLine($"Found phrase for {hash} ({phraseSet.GetMD5(i):x8}): {phrase}; time from start is {stopwatch.Elapsed}");
-                    }
-                }
-            });
+            processor.CheckPhrases(phraseSet => ProcessPhraseSet(phraseSet, expectedHashesFirstComponents, stopwatch));
 
             Console.WriteLine($"Done; time from start: {stopwatch.Elapsed}");
+        }
 
+        private static void ProcessPhraseSet(PhraseSet phraseSet, Vector<uint> expectedHashesFirstComponents, Stopwatch stopwatch)
+        {
+            phraseSet.ComputeMD5();
+            for (var i = 0; i < phraseSet.Length; i++)
+            {
+                /*Debug.Assert(
+                    sourceChars == ToOrderedChars(ToString(phraseSet, i)),
+                    $"StringsProcessor produced incorrect anagram: {ToString(phraseSet, i)}");*/
+
+                if (Vector.EqualsAny(expectedHashesFirstComponents, new Vector<uint>(phraseSet.GetMD5(i))))
+                {
+                    var phrase = ToString(phraseSet, i);
+                    var hash = ComputeFullMD5(phrase);
+                    Console.WriteLine($"Found phrase for {hash} ({phraseSet.GetMD5(i):x8}): {phrase}; time from start is {stopwatch.Elapsed}");
+                }
+            }
         }
 
         // Code taken from http://stackoverflow.com/a/321404/831314
