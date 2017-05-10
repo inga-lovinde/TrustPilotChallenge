@@ -7,18 +7,61 @@
 
 #if AVX2
 
-typedef __m256i MD5Vector;
+//typedef __m256i MD5Vector;
+struct MD5Vector
+{
+    __m256i m_V0;
+    __m256i m_V1;
+    inline MD5Vector() {}
+    inline MD5Vector(__m256i C0, __m256i C1) :m_V0(C0), m_V1(C1) {}
 
-#define OP_XOR(a, b) _mm256_xor_si256(a, b)
-#define OP_AND(a, b) _mm256_and_si256(a, b)
-#define OP_ANDNOT(a, b) _mm256_andnot_si256(a, b)
-#define OP_OR(a, b) _mm256_or_si256(a, b)
-#define OP_ADD(a, b) _mm256_add_epi32(a, b)
-#define OP_ROT(a, r) OP_OR(_mm256_slli_epi32(a, r), _mm256_srli_epi32(a, 32 - (r)))
+    __forceinline MD5Vector MXor(MD5Vector R) const
+    {
+        return MD5Vector(_mm256_xor_si256(m_V0, R.m_V0), _mm256_xor_si256(m_V1, R.m_V1));
+    }
+
+    __forceinline MD5Vector MAnd(MD5Vector R) const
+    {
+        return MD5Vector(_mm256_and_si256(m_V0, R.m_V0), _mm256_and_si256(m_V1, R.m_V1));
+    }
+
+    __forceinline MD5Vector MAndNot(MD5Vector R) const
+    {
+        return MD5Vector(_mm256_andnot_si256(m_V0, R.m_V0), _mm256_andnot_si256(m_V1, R.m_V1));
+    }
+
+    __forceinline MD5Vector MOr(MD5Vector R) const
+    {
+        return MD5Vector(_mm256_or_si256(m_V0, R.m_V0), _mm256_or_si256(m_V1, R.m_V1));
+    }
+
+    __forceinline MD5Vector MAdd(MD5Vector R) const
+    {
+        return MD5Vector(_mm256_add_epi32(m_V0, R.m_V0), _mm256_add_epi32(m_V1, R.m_V1));
+    }
+
+    __forceinline MD5Vector MShiftLeft(int shift) const
+    {
+        return MD5Vector(_mm256_slli_epi32(m_V0, shift), _mm256_slli_epi32(m_V1, shift));
+    }
+
+    __forceinline MD5Vector MShiftRight(int shift) const
+    {
+        return MD5Vector(_mm256_srli_epi32(m_V0, shift), _mm256_srli_epi32(m_V1, shift));
+    }
+};
+
+#define OP_XOR(a, b) a.MXor(b)
+#define OP_AND(a, b) a.MAnd(b)
+#define OP_ANDNOT(a, b) a.MAndNot(b)
+#define OP_OR(a, b) a.MOr(b)
+#define OP_ADD(a, b) a.MAdd(b)
+#define OP_ROT(a, r) OP_OR(a.MShiftLeft(r), a.MShiftRight(32 - (r)))
 #define OP_BLEND(a, b, x) OP_OR(OP_AND(x, b), OP_ANDNOT(x, a))
 
-#define CREATE_VECTOR(a) _mm256_set1_epi32(a)
-#define CREATE_VECTOR_FROM_INPUT(input, offset) _mm256_set_epi32( \
+#define CREATE_VECTOR(a) MD5Vector(_mm256_set1_epi32(a), _mm256_set1_epi32(a))
+#define CREATE_VECTOR_FROM_INPUT(input, offset) MD5Vector(\
+_mm256_set_epi32( \
     input[offset + 7 * 8], \
     input[offset + 6 * 8], \
     input[offset + 5 * 8], \
@@ -26,17 +69,35 @@ typedef __m256i MD5Vector;
     input[offset + 3 * 8], \
     input[offset + 2 * 8], \
     input[offset + 1 * 8], \
-    input[offset + 0 * 8])
+    input[offset + 0 * 8]), \
+_mm256_set_epi32( \
+    input[offset + 15 * 8], \
+    input[offset + 14 * 8], \
+    input[offset + 13 * 8], \
+    input[offset + 12 * 8], \
+    input[offset + 11 * 8], \
+    input[offset + 10 * 8], \
+    input[offset + 9 * 8], \
+    input[offset + 8 * 8]) \
+)
 
 #define WRITE_TO_OUTPUT(a, output) \
-    output[7 + 0 * 8] = a.m256i_u32[0]; \
-    output[7 + 1 * 8] = a.m256i_u32[1]; \
-    output[7 + 2 * 8] = a.m256i_u32[2]; \
-    output[7 + 3 * 8] = a.m256i_u32[3]; \
-    output[7 + 4 * 8] = a.m256i_u32[4]; \
-    output[7 + 5 * 8] = a.m256i_u32[5]; \
-    output[7 + 6 * 8] = a.m256i_u32[6]; \
-    output[7 + 7 * 8] = a.m256i_u32[7];
+    output[7 + 0 * 8] = a.m_V0.m256i_u32[0]; \
+    output[7 + 1 * 8] = a.m_V0.m256i_u32[1]; \
+    output[7 + 2 * 8] = a.m_V0.m256i_u32[2]; \
+    output[7 + 3 * 8] = a.m_V0.m256i_u32[3]; \
+    output[7 + 4 * 8] = a.m_V0.m256i_u32[4]; \
+    output[7 + 5 * 8] = a.m_V0.m256i_u32[5]; \
+    output[7 + 6 * 8] = a.m_V0.m256i_u32[6]; \
+    output[7 + 7 * 8] = a.m_V0.m256i_u32[7]; \
+    output[7 + 8 * 8] = a.m_V1.m256i_u32[0]; \
+    output[7 + 9 * 8] = a.m_V1.m256i_u32[1]; \
+    output[7 + 10 * 8] = a.m_V1.m256i_u32[2]; \
+    output[7 + 11 * 8] = a.m_V1.m256i_u32[3]; \
+    output[7 + 12 * 8] = a.m_V1.m256i_u32[4]; \
+    output[7 + 13 * 8] = a.m_V1.m256i_u32[5]; \
+    output[7 + 14 * 8] = a.m_V1.m256i_u32[6]; \
+    output[7 + 15 * 8] = a.m_V1.m256i_u32[7];
 
 #elif SIMD
 
