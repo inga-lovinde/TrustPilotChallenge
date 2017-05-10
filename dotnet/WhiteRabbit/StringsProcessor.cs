@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Numerics;
     using System.Threading.Tasks;
 
     internal sealed class StringsProcessor
@@ -60,13 +61,13 @@
 
         private int NumberOfCharacters { get; }
 
-        public void CheckPhrases(Action<PhraseSet> action)
+        public void CheckPhrases(Vector<uint> expectedHashes, Action<byte[], uint> action)
         {
             // task of finding anagrams could be reduced to the task of finding sequences of dictionary vectors with the target sum
             var sums = this.VectorsProcessor.GenerateSequences();
 
             // converting sequences of vectors to the sequences of words...
-            Parallel.ForEach(sums, new ParallelOptions { MaxDegreeOfParallelism = Constants.NumberOfThreads }, sum => ProcessSum(sum, action));
+            Parallel.ForEach(sums, new ParallelOptions { MaxDegreeOfParallelism = Constants.NumberOfThreads }, sum => ProcessSum(sum, expectedHashes, action));
         }
 
         public long GetPhrasesCount()
@@ -118,24 +119,31 @@
             return result;
         }
 
-        private void ProcessSum(int[] sum, Action<PhraseSet> action)
+        private void ProcessSum(int[] sum, Vector<uint> expectedHashes, Action<byte[], uint> action)
         {
             var initialPhraseSet = new PhraseSet();
             initialPhraseSet.Init();
             initialPhraseSet.FillLength(this.NumberOfCharacters, sum.Length);
             var phraseSet = new PhraseSet();
             phraseSet.Init();
-            var filter = ComputeFilter(sum);
+            var permutationsFilter = ComputeFilter(sum);
             var wordsVariants = this.ConvertVectorsToWordIndexes(sum);
             foreach (var wordsArray in Flattener.Flatten(wordsVariants))
             {
                 //Console.WriteLine(new string(wordsArray.SelectMany(wordIndex => this.AllWords[wordIndex].Original).Select(b => (char)b).ToArray()));
 
-                var permutations = PrecomputedPermutationsGenerator.HamiltonianPermutations(wordsArray.Length, filter);
+                var permutations = PrecomputedPermutationsGenerator.HamiltonianPermutations(wordsArray.Length, permutationsFilter);
                 for (var i = 0; i < permutations.Length; i += Constants.PhrasesPerSet)
                 {
                     phraseSet.FillPhraseSet(initialPhraseSet, this.AllWords, wordsArray, permutations, i);
-                    action(phraseSet);
+                    phraseSet.ComputeMD5();
+                    for (var j = 0; j < Constants.PhrasesPerSet; j++)
+                    {
+                        if (Vector.EqualsAny(expectedHashes, new Vector<uint>(phraseSet.GetMD5(j))))
+                        {
+                            action(phraseSet.GetBytes(j), phraseSet.GetMD5(j));
+                        }
+                    }
                 }
             }
         }

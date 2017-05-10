@@ -24,11 +24,10 @@
             stopwatch.Start();
 
             var sourcePhrase = ConfigurationManager.AppSettings["SourcePhrase"];
-            var sourceChars = ToOrderedChars(sourcePhrase);
 
             var maxWordsInPhrase = int.Parse(ConfigurationManager.AppSettings["MaxWordsInPhrase"]);
 
-            if (sourceChars.Length + maxWordsInPhrase > 28)
+            if (sourcePhrase.Where(ch => ch != ' ').Count() + maxWordsInPhrase > 28)
             {
                 Console.WriteLine("Only anagrams of up to 27 characters (including whitespace) are allowed");
                 return;
@@ -78,27 +77,14 @@
 
             stopwatch.Restart();
 
-            processor.CheckPhrases(phraseSet => ProcessPhraseSet(phraseSet, expectedHashesFirstComponents, stopwatch));
+            processor.CheckPhrases(expectedHashesFirstComponents, (phraseBytes, hashFirstComponent) =>
+            {
+                var phrase = Encoding.ASCII.GetString(phraseBytes);
+                var hash = ComputeFullMD5(phraseBytes);
+                Console.WriteLine($"Found phrase for {hash} ({hashFirstComponent:x8}): {phrase}; time from start is {stopwatch.Elapsed}");
+            });
 
             Console.WriteLine($"Done; time from start: {stopwatch.Elapsed}");
-        }
-
-        private static void ProcessPhraseSet(PhraseSet phraseSet, Vector<uint> expectedHashesFirstComponents, Stopwatch stopwatch)
-        {
-            phraseSet.ComputeMD5();
-            for (var i = 0; i < Constants.PhrasesPerSet; i++)
-            {
-                /*Debug.Assert(
-                    sourceChars == ToOrderedChars(ToString(phraseSet, i)),
-                    $"StringsProcessor produced incorrect anagram: {ToString(phraseSet, i)}");*/
-
-                if (Vector.EqualsAny(expectedHashesFirstComponents, new Vector<uint>(phraseSet.GetMD5(i))))
-                {
-                    var phrase = ToString(phraseSet, i);
-                    var hash = ComputeFullMD5(phrase);
-                    Console.WriteLine($"Found phrase for {hash} ({phraseSet.GetMD5(i):x8}): {phrase}; time from start is {stopwatch.Elapsed}");
-                }
-            }
         }
 
         // Code taken from http://stackoverflow.com/a/321404/831314
@@ -112,9 +98,8 @@
         }
 
         // We can afford to spend some time here; this code will only run for matched phrases (and for one in several billion non-matched)
-        private static string ComputeFullMD5(string phrase)
+        private static string ComputeFullMD5(byte[] phraseBytes)
         {
-            var phraseBytes = Encoding.ASCII.GetBytes(phrase);
             using (var hashAlgorithm = new MD5CryptoServiceProvider())
             {
                 var resultBytes = hashAlgorithm.ComputeHash(phraseBytes);
@@ -127,11 +112,6 @@
             return hex.Substring(6, 2) + hex.Substring(4, 2) + hex.Substring(2, 2) + hex.Substring(0, 2);
         }
 
-        private static string ToString(PhraseSet phrase, int offset)
-        {
-            return Encoding.ASCII.GetString(phrase.GetBytes(offset));
-        }
-
         private static IEnumerable<byte[]> ReadInput()
         {
             string line;
@@ -139,11 +119,6 @@
             {
                 yield return Encoding.ASCII.GetBytes(line);
             }
-        }
-
-        private static string ToOrderedChars(string source)
-        {
-            return new string(source.Where(ch => ch != ' ').OrderBy(ch => ch).ToArray());
         }
     }
 }
