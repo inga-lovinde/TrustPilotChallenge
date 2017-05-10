@@ -120,6 +120,8 @@
 
         private void ProcessSum(int[] sum, Action<PhraseSet> action)
         {
+            var initialPhraseSet = new PhraseSet(Constants.PhrasesPerSet);
+            initialPhraseSet.InitPhraseSet(this.NumberOfCharacters, sum.Length);
             var phraseSet = new PhraseSet(Constants.PhrasesPerSet);
             var filter = ComputeFilter(sum);
             var wordsVariants = this.ConvertVectorsToWordIndexes(sum);
@@ -130,7 +132,7 @@
                 var permutations = PrecomputedPermutationsGenerator.HamiltonianPermutations(wordsArray.Length, filter);
                 for (var i = 0; i < permutations.Length; i += Constants.PhrasesPerSet)
                 {
-                    phraseSet.FillPhraseSet(this.AllWords, wordsArray, permutations, i, this.NumberOfCharacters);
+                    phraseSet.FillPhraseSet(initialPhraseSet, this.AllWords, wordsArray, permutations, i);
                     action(phraseSet);
                 }
             }

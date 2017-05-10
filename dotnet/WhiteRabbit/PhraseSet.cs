@@ -1,6 +1,7 @@
 ﻿namespace WhiteRabbit
 {
     using System.Diagnostics;
+    using System.Linq;
     using System.Runtime.CompilerServices;
     using WhiteRabbitUnmanagedBridge;
 
@@ -17,11 +18,23 @@
             this.Buffer = new uint[8 * length];
         }
 
-        public unsafe void FillPhraseSet(Word[] allWords, int[] wordIndexes, ulong[] permutations, int permutationOffset, int numberOfCharacters)
+        public unsafe void InitPhraseSet(int numberOfCharacters, int numberOfWords)
         {
-            Debug.Assert(numberOfCharacters + wordIndexes.Length - 1 < 27);
-
             fixed (uint* bufferPointer = this.Buffer)
+            {
+                var length = (uint)(numberOfCharacters + numberOfWords - 1);
+                var lengthInBits = (uint)(length << 3);
+                for (var i = 0; i < this.Length; i++)
+                {
+                    bufferPointer[7 + i * 8] = lengthInBits;
+                    ((byte*)bufferPointer)[length + i * 32] = 128 ^ ' ';
+                }
+            }
+        }
+
+        public unsafe void FillPhraseSet(PhraseSet initial, Word[] allWords, int[] wordIndexes, ulong[] permutations, int permutationOffset)
+        {
+            fixed (uint* bufferPointer = this.Buffer, initialBufferPointer = initial.Buffer)
             {
                 fixed (ulong* permutationsPointer = permutations)
                 {
@@ -30,11 +43,11 @@
                         fixed (Word* allWordsPointer = allWords)
                         {
                             MD5Unmanaged.FillPhraseSet(
-                                (long*)bufferPointer,
-                                (long*)allWordsPointer,
+                                (ulong*)initialBufferPointer,
+                                (ulong*)bufferPointer,
+                                (ulong*)allWordsPointer,
                                 wordIndexesPointer,
                                 permutationsPointer + permutationOffset,
-                                numberOfCharacters,
                                 wordIndexes.Length);
                         }
                     }
@@ -58,9 +71,9 @@
 
         public unsafe byte[] GetBytes(int number)
         {
-            Debug.Assert(number < Constants.PhrasesPerSet);
+            Debug.Assert(number < this.Length);
 
-            fixed(uint* bufferPointer = this.Buffer)
+            fixed (uint* bufferPointer = this.Buffer)
             {
                 var phrasePointer = bufferPointer + 8 * number;
                 var length = 0;
@@ -80,6 +93,17 @@
                 }
 
                 return result;
+            }
+        }
+
+        public unsafe string DebugBytes(int number)
+        {
+            Debug.Assert(number < this.Length);
+
+            fixed (uint* bufferPointer = this.Buffer)
+            {
+                var bytes = (byte*)bufferPointer;
+                return string.Concat(Enumerable.Range(32 * number, 32).Select(i => bytes[i].ToString("X2")));
             }
         }
     }
