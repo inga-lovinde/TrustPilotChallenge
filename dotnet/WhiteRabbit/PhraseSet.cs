@@ -10,21 +10,18 @@
     {
         private uint[] Buffer;
 
-        public int Length;
-
-        public PhraseSet(int length)
+        public void Init()
         {
-            this.Length = length;
-            this.Buffer = new uint[8 * length];
+            this.Buffer = new uint[8 * Constants.PhrasesPerSet];
         }
 
-        public unsafe void InitPhraseSet(int numberOfCharacters, int numberOfWords)
+        public unsafe void FillLength(int numberOfCharacters, int numberOfWords)
         {
             fixed (uint* bufferPointer = this.Buffer)
             {
                 var length = (uint)(numberOfCharacters + numberOfWords - 1);
                 var lengthInBits = (uint)(length << 3);
-                for (var i = 0; i < this.Length; i++)
+                for (var i = 0; i < Constants.PhrasesPerSet; i++)
                 {
                     bufferPointer[7 + i * 8] = lengthInBits;
                     ((byte*)bufferPointer)[length + i * 32] = 128 ^ ' ';
@@ -71,7 +68,7 @@
 
         public unsafe byte[] GetBytes(int number)
         {
-            Debug.Assert(number < this.Length);
+            Debug.Assert(number < Constants.PhrasesPerSet);
 
             fixed (uint* bufferPointer = this.Buffer)
             {
@@ -98,7 +95,7 @@
 
         public unsafe string DebugBytes(int number)
         {
-            Debug.Assert(number < this.Length);
+            Debug.Assert(number < Constants.PhrasesPerSet);
 
             fixed (uint* bufferPointer = this.Buffer)
             {

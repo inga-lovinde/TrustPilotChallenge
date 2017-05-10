@@ -86,7 +86,7 @@
         private static void ProcessPhraseSet(PhraseSet phraseSet, Vector<uint> expectedHashesFirstComponents, Stopwatch stopwatch)
         {
             phraseSet.ComputeMD5();
-            for (var i = 0; i < phraseSet.Length; i++)
+            for (var i = 0; i < Constants.PhrasesPerSet; i++)
             {
                 /*Debug.Assert(
                     sourceChars == ToOrderedChars(ToString(phraseSet, i)),

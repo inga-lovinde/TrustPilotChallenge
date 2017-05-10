@@ -120,9 +120,11 @@
 
         private void ProcessSum(int[] sum, Action<PhraseSet> action)
         {
-            var initialPhraseSet = new PhraseSet(Constants.PhrasesPerSet);
-            initialPhraseSet.InitPhraseSet(this.NumberOfCharacters, sum.Length);
-            var phraseSet = new PhraseSet(Constants.PhrasesPerSet);
+            var initialPhraseSet = new PhraseSet();
+            initialPhraseSet.Init();
+            initialPhraseSet.FillLength(this.NumberOfCharacters, sum.Length);
+            var phraseSet = new PhraseSet();
+            phraseSet.Init();
             var filter = ComputeFilter(sum);
             var wordsVariants = this.ConvertVectorsToWordIndexes(sum);
             foreach (var wordsArray in Flattener.Flatten(wordsVariants))
