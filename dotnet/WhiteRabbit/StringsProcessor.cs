@@ -130,21 +130,13 @@
             var wordsVariants = this.ConvertVectorsToWordIndexes(sum);
             foreach (var wordsArray in Flattener.Flatten(wordsVariants))
             {
-                //Console.WriteLine(new string(wordsArray.SelectMany(wordIndex => this.AllWords[wordIndex].Original).Select(b => (char)b).ToArray()));
-
-                var permutations = PrecomputedPermutationsGenerator.HamiltonianPermutations(wordsArray.Length, permutationsFilter);
-                for (var i = 0; i < permutations.Length; i += Constants.PhrasesPerSet)
-                {
-                    phraseSet.FillPhraseSet(initialPhraseSet, this.AllWords, wordsArray, permutations, i);
-                    phraseSet.ComputeMD5();
-                    for (var j = 0; j < Constants.PhrasesPerSet; j++)
-                    {
-                        if (Vector.EqualsAny(expectedHashes, new Vector<uint>(phraseSet.GetMD5(j))))
-                        {
-                            action(phraseSet.GetBytes(j), phraseSet.GetMD5(j));
-                        }
-                    }
-                }
+                phraseSet.ProcessPermutations(
+                    initialPhraseSet,
+                    this.AllWords,
+                    wordsArray,
+                    PrecomputedPermutationsGenerator.HamiltonianPermutations(wordsArray.Length, permutationsFilter),
+                    expectedHashes,
+                    action);
             }
         }
     }

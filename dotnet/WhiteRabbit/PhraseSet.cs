@@ -1,7 +1,9 @@
 ﻿namespace WhiteRabbit
 {
+    using System;
     using System.Diagnostics;
     using System.Linq;
+    using System.Numerics;
     using System.Runtime.CompilerServices;
     using WhiteRabbitUnmanagedBridge;
 
@@ -29,9 +31,9 @@
             }
         }
 
-        public unsafe void FillPhraseSet(PhraseSet initial, Word[] allWords, int[] wordIndexes, ulong[] permutations, int permutationOffset)
+        public unsafe void ProcessPermutations(PhraseSet initialPhraseSet, Word[] allWords, int[] wordIndexes, ulong[] permutations, Vector<uint> expectedHashes, Action<byte[], uint> action)
         {
-            fixed (uint* bufferPointer = this.Buffer, initialBufferPointer = initial.Buffer)
+            fixed (uint* bufferPointer = this.Buffer, initialBufferPointer = initialPhraseSet.Buffer)
             {
                 fixed (ulong* permutationsPointer = permutations)
                 {
@@ -39,31 +41,30 @@
                     {
                         fixed (Word* allWordsPointer = allWords)
                         {
-                            MD5Unmanaged.FillPhraseSet(
-                                (ulong*)initialBufferPointer,
-                                (ulong*)bufferPointer,
-                                (ulong*)allWordsPointer,
-                                wordIndexesPointer,
-                                permutationsPointer + permutationOffset,
-                                wordIndexes.Length);
+                            for (var i = 0; i < permutations.Length; i += Constants.PhrasesPerSet)
+                            {
+                                MD5Unmanaged.FillPhraseSet(
+                                    (ulong*)initialBufferPointer,
+                                    (ulong*)bufferPointer,
+                                    (ulong*)allWordsPointer,
+                                    wordIndexesPointer,
+                                    permutationsPointer + i,
+                                    wordIndexes.Length);
+
+                                MD5Unmanaged.ComputeMD5(bufferPointer);
+
+                                for (var j = 0; j < Constants.PhrasesPerSet; j++)
+                                {
+                                    if (Vector.EqualsAny(expectedHashes, new Vector<uint>(bufferPointer[j * 8 + 7])))
+                                    {
+                                        action(this.GetBytes(j), bufferPointer[j * 8 + 7]);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
-        }
-
-        public unsafe void ComputeMD5()
-        {
-            fixed (uint* inputBuffer = this.Buffer)
-            {
-                MD5Unmanaged.ComputeMD5(inputBuffer);
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public uint GetMD5(int number)
-        {
-            return this.Buffer[number * 8 + 7];
         }
 
         public unsafe byte[] GetBytes(int number)
