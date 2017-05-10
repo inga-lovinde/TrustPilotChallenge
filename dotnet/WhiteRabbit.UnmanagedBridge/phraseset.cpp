@@ -31,9 +31,8 @@
 
 #define PROCESS_WORD(phraseNumber, wordNumber) \
     { \
-        auto currentWord = allWordsPointer + wordIndexes[permutation % 16] * 128; \
+        auto currentWord = allWordsPointer + wordIndexes[_bextr_u64(permutation, 4 * wordNumber, 4)] * 128; \
         phrase = _mm256_xor_si256(phrase, *(__m256i*)(currentWord + cumulativeWordOffset)); \
-        permutation >>= 4; \
         cumulativeWordOffset += currentWord[127]; \
     }
 
