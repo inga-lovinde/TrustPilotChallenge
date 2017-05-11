@@ -49,10 +49,10 @@ Number of words|Time to check all anagrams no longer than that|Time to solve "ea
 4|0.45s|||0.08s|7,431,984
 5|10s|0.15s|0.06s|0.29s|1,347,437,484
 6|5 minutes|0.9s|0.2s|2.3s|58,405,904,844
-7|81 minutes|5.1s|0.7s|14.5s|1,070,307,744,114
-8|21.5 hours|19s|2s|59s|10,893,594,396,594
-9||2.5 minutes|13s|9.5 minutes|70,596,864,409,954
-10||5 minutes|21s|17.5 minutes|314,972,701,475,754
+7|94 minutes|5.1s|0.7s|14.5s|1,070,307,744,114
+8|16 hours|19s|2s|59s|10,893,594,396,594
+9||49s|4.4s|2.7 minutes|70,596,864,409,954
+10||89s|6.5s|5.2 minutes|314,972,701,475,754
 
 Note that all measurements were done on a Release build; Debug build is significantly slower.
 
