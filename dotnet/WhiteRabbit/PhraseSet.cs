@@ -31,7 +31,7 @@
             }
         }
 
-        public unsafe void ProcessPermutations(PhraseSet initialPhraseSet, Word[] allWords, int[] wordIndexes, ulong[] permutations, Vector<uint> expectedHashes, Action<byte[], uint> action)
+        public unsafe void ProcessPermutations(PhraseSet initialPhraseSet, Word[] allWords, int[] wordIndexes, ulong[] permutations, uint[] expectedHashesVector, Action<byte[], uint> action)
         {
             fixed (uint* bufferPointer = this.Buffer, initialBufferPointer = initialPhraseSet.Buffer)
             {
@@ -41,23 +41,39 @@
                     {
                         fixed (Word* allWordsPointer = allWords)
                         {
-                            for (var i = 0; i < permutations.Length; i += Constants.PhrasesPerSet)
+                            fixed (uint* expectedHashesPointer = expectedHashesVector)
                             {
-                                MD5Unmanaged.FillPhraseSet(
-                                    (ulong*)initialBufferPointer,
-                                    (ulong*)bufferPointer,
-                                    (ulong*)allWordsPointer,
-                                    wordIndexesPointer,
-                                    permutationsPointer + i,
-                                    wordIndexes.Length);
-
-                                MD5Unmanaged.ComputeMD5(bufferPointer);
-
-                                for (var j = 0; j < Constants.PhrasesPerSet; j++)
+                                for (var i = 0; i < permutations.Length; i += Constants.PhrasesPerSet)
                                 {
-                                    if (Vector.EqualsAny(expectedHashes, new Vector<uint>(bufferPointer[j * 8 + 7])))
+                                    MD5Unmanaged.FillPhraseSet(
+                                        (ulong*)initialBufferPointer,
+                                        (ulong*)bufferPointer,
+                                        (ulong*)allWordsPointer,
+                                        wordIndexesPointer,
+                                        permutationsPointer + i,
+                                        wordIndexes.Length);
+
+                                    MD5Unmanaged.ComputeMD5(bufferPointer, expectedHashesPointer);
+
+                                    if (bufferPointer[Constants.PhrasesPerSet / 2] != 0)
                                     {
-                                        action(this.GetBytes(j), bufferPointer[j * 8 + 7]);
+                                        for (var j = 0; j < Constants.PhrasesPerSet; j++)
+                                        {
+                                            var match = (bufferPointer[j / 2] >> (4 * (j % 2))) & 0xF0F0F0F;
+                                            if (match != 0)
+                                            {
+                                                var bufferInfo = ((ulong)bufferPointer[Constants.PhrasesPerSet] << 32) | bufferPointer[j];
+                                                MD5Unmanaged.FillPhraseSet(
+                                                    (ulong*)initialBufferPointer,
+                                                    (ulong*)bufferPointer,
+                                                    (ulong*)allWordsPointer,
+                                                    wordIndexesPointer,
+                                                    permutationsPointer + i,
+                                                    wordIndexes.Length);
+                                                action(this.GetBytes(j), match);
+                                                break;
+                                            }
+                                        }
                                     }
                                 }
                             }

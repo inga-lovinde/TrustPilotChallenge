@@ -81,23 +81,18 @@ _mm256_set_epi32( \
     input[offset + 8 * 8]) \
 )
 
-#define WRITE_TO_OUTPUT(a, output) \
-    output[7 + 0 * 8] = a.m_V0.m256i_u32[0]; \
-    output[7 + 1 * 8] = a.m_V0.m256i_u32[1]; \
-    output[7 + 2 * 8] = a.m_V0.m256i_u32[2]; \
-    output[7 + 3 * 8] = a.m_V0.m256i_u32[3]; \
-    output[7 + 4 * 8] = a.m_V0.m256i_u32[4]; \
-    output[7 + 5 * 8] = a.m_V0.m256i_u32[5]; \
-    output[7 + 6 * 8] = a.m_V0.m256i_u32[6]; \
-    output[7 + 7 * 8] = a.m_V0.m256i_u32[7]; \
-    output[7 + 8 * 8] = a.m_V1.m256i_u32[0]; \
-    output[7 + 9 * 8] = a.m_V1.m256i_u32[1]; \
-    output[7 + 10 * 8] = a.m_V1.m256i_u32[2]; \
-    output[7 + 11 * 8] = a.m_V1.m256i_u32[3]; \
-    output[7 + 12 * 8] = a.m_V1.m256i_u32[4]; \
-    output[7 + 13 * 8] = a.m_V1.m256i_u32[5]; \
-    output[7 + 14 * 8] = a.m_V1.m256i_u32[6]; \
-    output[7 + 15 * 8] = a.m_V1.m256i_u32[7];
+#define PERMUTE_MASK 85
+
+#define WRITE_TO_OUTPUT(a, output, expected) \
+    output[0] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V0, 0 * PERMUTE_MASK))); \
+    output[1] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V0, 1 * PERMUTE_MASK))); \
+    output[2] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V0, 2 * PERMUTE_MASK))); \
+    output[3] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V0, 3 * PERMUTE_MASK))); \
+    output[4] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V1, 0 * PERMUTE_MASK))); \
+    output[5] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V1, 1 * PERMUTE_MASK))); \
+    output[6] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V1, 2 * PERMUTE_MASK))); \
+    output[7] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V1, 3 * PERMUTE_MASK))); \
+    output[8] = _mm256_movemask_epi8(_mm256_or_si256(*((__m256i*)output), _mm256_slli_epi16(*((__m256i*)output), 4)));
 
 #elif SIMD
 
@@ -246,7 +241,7 @@ static const MD5Parameters Parameters = {
 #define Step4(r, a, b, c, d, k, w) StepOuter(r, a, b, OP_ADD(I(c, b, d), OP_ADD(CREATE_VECTOR(k), OP_ADD(a, w))))
 #define Step4E(r, a, b, c, d, k)   StepOuter(r, a, b, OP_ADD(I(c, b, d), OP_ADD(CREATE_VECTOR(k), a)))
 
-void md5(unsigned __int32 * input)
+void md5(unsigned __int32 * input, unsigned __int32 * expected)
 {
     MD5Vector a = CREATE_VECTOR(Parameters.Init[0]);
     MD5Vector b = CREATE_VECTOR(Parameters.Init[1]);
@@ -329,6 +324,6 @@ void md5(unsigned __int32 * input)
 
     a = OP_ADD(CREATE_VECTOR(Parameters.Init[0]), a);
 
-    WRITE_TO_OUTPUT(a, input);
+    WRITE_TO_OUTPUT(a, ((__int32*)input), ((__m256i*)expected));
 }
 #pragma managed

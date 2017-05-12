@@ -50,17 +50,15 @@
                 Console.WriteLine("Only 64-bit systems are supported due to MD5Digest optimizations");
             }
 
-            Vector<uint> expectedHashesFirstComponents;
+            var expectedHashesFirstComponentsArray = new uint[8];
             {
-                var expectedHashesFirstComponentsArray = new uint[Vector<uint>.Count];
                 int i = 0;
                 foreach (var expectedHash in ConfigurationManager.AppSettings["ExpectedHashes"].Split(','))
                 {
                     expectedHashesFirstComponentsArray[i] = HexadecimalStringToUnsignedIntArray(expectedHash)[0];
-                    i++;
+                    expectedHashesFirstComponentsArray[i + 1] = HexadecimalStringToUnsignedIntArray(expectedHash)[0];
+                    i += 2;
                 }
-
-                expectedHashesFirstComponents = new Vector<uint>(expectedHashesFirstComponentsArray);
             }
 
             var processor = new StringsProcessor(
@@ -77,7 +75,7 @@
 
             stopwatch.Restart();
 
-            processor.CheckPhrases(expectedHashesFirstComponents, (phraseBytes, hashFirstComponent) =>
+            processor.CheckPhrases(expectedHashesFirstComponentsArray, (phraseBytes, hashFirstComponent) =>
             {
                 var phrase = Encoding.ASCII.GetString(phraseBytes);
                 var hash = ComputeFullMD5(phraseBytes);

@@ -12,7 +12,7 @@ namespace WhiteRabbitUnmanagedBridge {
 	{
         public:
             literal int PhrasesPerSet = PHRASES_PER_SET;
-            static void ComputeMD5(unsigned int* input);
+            static void ComputeMD5(unsigned int* input, unsigned __int32 * expected);
             static void FillPhraseSet(unsigned __int64* initialBufferPointer, unsigned __int64* bufferPointer, unsigned __int64* allWordsPointer, __int32* wordIndexes, unsigned __int64* permutationsPointer, int numberOfWords);
 	};
 }

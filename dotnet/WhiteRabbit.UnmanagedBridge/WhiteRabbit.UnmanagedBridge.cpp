@@ -6,10 +6,10 @@
 #include "md5.h"
 #include "phraseset.h"
 
-void WhiteRabbitUnmanagedBridge::MD5Unmanaged::ComputeMD5(unsigned __int32 * input)
+void WhiteRabbitUnmanagedBridge::MD5Unmanaged::ComputeMD5(unsigned __int32 * input, unsigned __int32 * expected)
 {
 #if AVX2
-    md5(input + 0 * 8 * 8);
+    md5(input + 0 * 8 * 8, expected);
 #elif SIMD
     md5(input + 0 * 8 * 4);
     md5(input + 1 * 8 * 4);

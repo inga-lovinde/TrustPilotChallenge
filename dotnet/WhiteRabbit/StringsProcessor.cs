@@ -61,13 +61,13 @@
 
         private int NumberOfCharacters { get; }
 
-        public void CheckPhrases(Vector<uint> expectedHashes, Action<byte[], uint> action)
+        public void CheckPhrases(uint[] expectedHashesVector, Action<byte[], uint> action)
         {
             // task of finding anagrams could be reduced to the task of finding sequences of dictionary vectors with the target sum
             var sums = this.VectorsProcessor.GenerateSequences();
 
             // converting sequences of vectors to the sequences of words...
-            Parallel.ForEach(sums, new ParallelOptions { MaxDegreeOfParallelism = Constants.NumberOfThreads }, sum => ProcessSum(sum, expectedHashes, action));
+            Parallel.ForEach(sums, new ParallelOptions { MaxDegreeOfParallelism = Constants.NumberOfThreads }, sum => ProcessSum(sum, expectedHashesVector, action));
         }
 
         public long GetPhrasesCount()
@@ -119,7 +119,7 @@
             return result;
         }
 
-        private void ProcessSum(int[] sum, Vector<uint> expectedHashes, Action<byte[], uint> action)
+        private void ProcessSum(int[] sum, uint[] expectedHashesVector, Action<byte[], uint> action)
         {
             var initialPhraseSet = new PhraseSet();
             initialPhraseSet.Init();
@@ -135,7 +135,7 @@
                     this.AllWords,
                     wordsArray,
                     PrecomputedPermutationsGenerator.HamiltonianPermutations(wordsArray.Length, permutationsFilter),
-                    expectedHashes,
+                    expectedHashesVector,
                     action);
             }
         }
