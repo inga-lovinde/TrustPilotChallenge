@@ -5,8 +5,6 @@
 
 #pragma unmanaged
 
-#if AVX2
-
 struct MD5Vector
 {
     __m256i m_V0;
@@ -77,7 +75,8 @@ __forceinline const MD5Vector OP_ROT(const MD5Vector a) { return OP_OR(a.MShiftL
 __forceinline const MD5Vector OP_BLEND(const MD5Vector a, const MD5Vector b, const MD5Vector x) { return OP_OR(OP_AND(x, b), OP_ANDNOT(x, a)); }
 
 __forceinline const MD5Vector CREATE_VECTOR(const int a) { return MD5Vector(_mm256_set1_epi32(a), _mm256_set1_epi32(a)); }
-__forceinline const MD5Vector CREATE_VECTOR_FROM_INPUT(const unsigned __int32* input, const size_t offset) {
+__forceinline const MD5Vector CREATE_VECTOR_FROM_INPUT(const unsigned __int32* input, const size_t offset)
+{
     return MD5Vector(
         _mm256_set_epi32(
             input[offset + 7 * 8],
@@ -106,52 +105,17 @@ __forceinline const MD5Vector CREATE_VECTOR_FROM_INPUT(const unsigned __int32* i
     a.Permute<3 * 0x55>().CompareEquality32(*expected).WriteMoveMask8(output + 6); \
     output[8] = _mm256_movemask_epi8(_mm256_cmpeq_epi8(*((__m256i*)output), _mm256_setzero_si256()));
 
-#elif SIMD
+__forceinline void WriteToOutput(const MD5Vector a, __int32 * output, __m256i * expected)
+{
+    a.Permute<0 * 0x55>().CompareEquality32(*expected).WriteMoveMask8(output);
+    a.Permute<1 * 0x55>().CompareEquality32(*expected).WriteMoveMask8(output);
+    a.Permute<2 * 0x55>().CompareEquality32(*expected).WriteMoveMask8(output);
+    a.Permute<3 * 0x55>().CompareEquality32(*expected).WriteMoveMask8(output);
+    output[8] = _mm256_movemask_epi8(_mm256_cmpeq_epi8(*((__m256i*)output), _mm256_setzero_si256()));
+}
 
-typedef __m128i MD5Vector;
-
-#define OP_XOR(a, b) _mm_xor_si128(a, b)
-#define OP_AND(a, b) _mm_and_si128(a, b)
-#define OP_ANDNOT(a, b) _mm_andnot_si128(a, b)
-#define OP_OR(a, b) _mm_or_si128(a, b)
-#define OP_ADD(a, b) _mm_add_epi32(a, b)
-#define OP_ROT(a, r) OP_OR(_mm_slli_epi32(a, r), _mm_srli_epi32(a, 32 - (r)))
-#define OP_BLEND(a, b, x) OP_OR(OP_AND(x, b), OP_ANDNOT(x, a))
-//#define OP_BLEND(a, b, x) OP_XOR(a, OP_AND(x, OP_XOR(b, a)))
-
-#define CREATE_VECTOR(a) _mm_set1_epi32(a)
-#define CREATE_VECTOR_FROM_INPUT(input, offset) _mm_set_epi32( \
-    input[offset + 3 * 8], \
-    input[offset + 2 * 8], \
-    input[offset + 1 * 8], \
-    input[offset + 0 * 8])
-
-#define WRITE_TO_OUTPUT(a, output) \
-    output[7 + 0 * 8] = a.m128i_u32[0]; \
-    output[7 + 1 * 8] = a.m128i_u32[1]; \
-    output[7 + 2 * 8] = a.m128i_u32[2]; \
-    output[7 + 3 * 8] = a.m128i_u32[3];
-
-#else
-
-typedef unsigned int MD5Vector;
-
-#define OP_XOR(a, b) (a) ^ (b)
-#define OP_AND(a, b) (a) & (b)
-#define OP_ANDNOT(a, b) ~(a) & (b)
-#define OP_OR(a, b) (a) | (b)
-#define OP_ADD(a, b) (a) + (b)
-#define OP_ROT(a, r) _rotl(a, r)
-#define OP_BLEND(a, b, x) ((x) & (b)) | (~(x) & (a))
-
-#define CREATE_VECTOR(a) a
-#define CREATE_VECTOR_FROM_INPUT(input, offset) (input[offset])
-
-#define WRITE_TO_OUTPUT(a, output) \
-    output[7] = a;
-#endif
-
-#define OP_NEG(a) OP_ANDNOT(a, CREATE_VECTOR(0xffffffff))
+const MD5Vector Ones = CREATE_VECTOR(0xffffffff);
+__forceinline const MD5Vector OP_NEG(const MD5Vector a) { return OP_ANDNOT(a, Ones); }
 
 __forceinline const MD5Vector Blend(const MD5Vector a, const MD5Vector b, const MD5Vector x) { return OP_BLEND(a, b, x); }
 __forceinline const MD5Vector Xor(const MD5Vector a, const MD5Vector b, const MD5Vector c) { return OP_XOR(a, OP_XOR(b, c)); }
