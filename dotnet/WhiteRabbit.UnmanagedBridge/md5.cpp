@@ -81,18 +81,16 @@ _mm256_set_epi32( \
     input[offset + 8 * 8]) \
 )
 
-#define PERMUTE_MASK 85
-
 #define WRITE_TO_OUTPUT(a, output, expected) \
-    output[0] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V0, 0 * PERMUTE_MASK))); \
-    output[1] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V0, 1 * PERMUTE_MASK))); \
-    output[2] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V0, 2 * PERMUTE_MASK))); \
-    output[3] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V0, 3 * PERMUTE_MASK))); \
-    output[4] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V1, 0 * PERMUTE_MASK))); \
-    output[5] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V1, 1 * PERMUTE_MASK))); \
-    output[6] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V1, 2 * PERMUTE_MASK))); \
-    output[7] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V1, 3 * PERMUTE_MASK))); \
-    output[8] = _mm256_movemask_epi8(_mm256_or_si256(*((__m256i*)output), _mm256_slli_epi16(*((__m256i*)output), 4)));
+    output[0] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V0, 0 * 0x55))); \
+    output[1] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V1, 0 * 0x55))); \
+    output[2] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V0, 1 * 0x55))); \
+    output[3] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V1, 1 * 0x55))); \
+    output[4] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V0, 2 * 0x55))); \
+    output[5] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V1, 2 * 0x55))); \
+    output[6] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V0, 3 * 0x55))); \
+    output[7] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V1, 3 * 0x55))); \
+    output[8] = _mm256_movemask_epi8(_mm256_cmpeq_epi8(*((__m256i*)output), _mm256_setzero_si256()));
 
 #elif SIMD
 

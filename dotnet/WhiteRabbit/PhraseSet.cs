@@ -55,11 +55,13 @@
 
                                     MD5Unmanaged.ComputeMD5(bufferPointer, expectedHashesPointer);
 
-                                    if (bufferPointer[Constants.PhrasesPerSet / 2] != 0)
+                                    if (bufferPointer[Constants.PhrasesPerSet / 2] != 0xFFFFFFFF)
                                     {
                                         for (var j = 0; j < Constants.PhrasesPerSet; j++)
                                         {
-                                            var match = (bufferPointer[j / 2] >> (4 * (j % 2))) & 0xF0F0F0F;
+                                            // 16 matches are packed in 8 32-bit numbers: [0,1], [8,9], [2,3], [10,11], [4, 5], [12, 13], [6, 7], [14, 15]
+                                            var position = ((j / 2) % 4) * 2 + (j / 8);
+                                            var match = (bufferPointer[position] >> (4 * (j % 2))) & 0xF0F0F0F;
                                             if (match != 0)
                                             {
                                                 var bufferInfo = ((ulong)bufferPointer[Constants.PhrasesPerSet] << 32) | bufferPointer[j];
