@@ -6,116 +6,42 @@
 
 #pragma unmanaged
 
-#define REPEAT_PHRASES(macro) \
-    macro(0); \
-    macro(1); \
-    macro(2); \
-    macro(3); \
-    macro(4); \
-    macro(5); \
-    macro(6); \
-    macro(7); \
-    macro(8); \
-    macro(9); \
-    macro(10); \
-    macro(11); \
-    macro(12); \
-    macro(13); \
-    macro(14); \
-    macro(15);
+template<int numberOfWords>
+class Processor
+{
+public:
+    template<int wordNumber>
+    static __forceinline const __m256i ProcessWord(const __m256i phrase, const unsigned __int64 cumulativeWordOffset, const unsigned __int64 permutation, unsigned __int64* allWordsPointer, __int32* wordIndexes)
+    {
+        auto currentWord = allWordsPointer + wordIndexes[_bextr_u64(permutation, 4 * wordNumber, 4)] * 128;
 
-#define INIT_WORD(phraseNumber) \
-    auto permutation = permutationsPointer[phraseNumber]; \
-    unsigned __int64 cumulativeWordOffset = 0; \
-    auto phrase = avx2initialBuffer[phraseNumber];
-
-#define PROCESS_WORD(phraseNumber, wordNumber) \
-    { \
-        auto currentWord = allWordsPointer + wordIndexes[_bextr_u64(permutation, 4 * wordNumber, 4)] * 128; \
-        phrase = _mm256_xor_si256(phrase, *(__m256i*)(currentWord + cumulativeWordOffset)); \
-        cumulativeWordOffset += currentWord[127]; \
+        return ProcessWord<wordNumber + 1>(
+            _mm256_xor_si256(phrase, *(__m256i*)(currentWord + cumulativeWordOffset)),
+            cumulativeWordOffset + currentWord[127],
+            permutation,
+            allWordsPointer,
+            wordIndexes);
     }
 
-#define DONE_WORD(phraseNumber) \
-    avx2buffer[phraseNumber] = phrase;
-
-#define REPEAT_WORDS_SIMPLE1(phraseNumber) \
-    { \
-        PROCESS_WORD(phraseNumber, 0); \
+    template<>
+    static __forceinline const __m256i ProcessWord<numberOfWords>(const __m256i phrase, const unsigned __int64 cumulativeWordOffset, const unsigned __int64 permutation, unsigned __int64* allWordsPointer, __int32* wordIndexes)
+    {
+        return phrase;
     }
 
-#define REPEAT_WORDS_SIMPLE2(phraseNumber) \
-    { \
-        REPEAT_WORDS_SIMPLE1(phraseNumber); \
-        PROCESS_WORD(phraseNumber, 1); \
+    template<int phraseNumber>
+    static __forceinline void ProcessWordsForPhrase(__m256i* avx2initialBuffer, __m256i* avx2buffer, unsigned __int64* allWordsPointer, __int32* wordIndexes, unsigned __int64* permutationsPointer)
+    {
+        avx2buffer[phraseNumber] = ProcessWord<0>(*avx2initialBuffer, 0, permutationsPointer[phraseNumber], allWordsPointer, wordIndexes);
+        ProcessWordsForPhrase<phraseNumber + 1>(avx2initialBuffer, avx2buffer, allWordsPointer, wordIndexes, permutationsPointer);
     }
 
-#define REPEAT_WORDS_SIMPLE3(phraseNumber) \
-    { \
-        REPEAT_WORDS_SIMPLE2(phraseNumber); \
-        PROCESS_WORD(phraseNumber, 2); \
+    template<>
+    static __forceinline void ProcessWordsForPhrase<PHRASES_PER_SET>(__m256i* avx2initialBuffer, __m256i* avx2buffer, unsigned __int64* allWordsPointer, __int32* wordIndexes, unsigned __int64* permutationsPointer)
+    {
+        return;
     }
-
-#define REPEAT_WORDS_SIMPLE4(phraseNumber) \
-    { \
-        REPEAT_WORDS_SIMPLE3(phraseNumber); \
-        PROCESS_WORD(phraseNumber, 3); \
-    }
-
-#define REPEAT_WORDS_SIMPLE5(phraseNumber) \
-    { \
-        REPEAT_WORDS_SIMPLE4(phraseNumber); \
-        PROCESS_WORD(phraseNumber, 4); \
-    }
-
-#define REPEAT_WORDS_SIMPLE6(phraseNumber) \
-    { \
-        REPEAT_WORDS_SIMPLE5(phraseNumber); \
-        PROCESS_WORD(phraseNumber, 5); \
-    }
-
-#define REPEAT_WORDS_SIMPLE7(phraseNumber) \
-    { \
-        REPEAT_WORDS_SIMPLE6(phraseNumber); \
-        PROCESS_WORD(phraseNumber, 6); \
-    }
-
-#define REPEAT_WORDS_SIMPLE8(phraseNumber) \
-    { \
-        REPEAT_WORDS_SIMPLE7(phraseNumber); \
-        PROCESS_WORD(phraseNumber, 7); \
-    }
-
-#define REPEAT_WORDS_SIMPLE9(phraseNumber) \
-    { \
-        REPEAT_WORDS_SIMPLE8(phraseNumber); \
-        PROCESS_WORD(phraseNumber, 8); \
-    }
-
-#define REPEAT_WORDS_SIMPLE10(phraseNumber) \
-    { \
-        REPEAT_WORDS_SIMPLE9(phraseNumber); \
-        PROCESS_WORD(phraseNumber, 9); \
-    }
-
-#define REPEAT_WORDS(phraseNumber, repeater) \
-    { \
-        INIT_WORD(phraseNumber); \
-        repeater(phraseNumber); \
-        DONE_WORD(phraseNumber); \
-    }
-
-#define REPEAT_WORDS1(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE1)
-#define REPEAT_WORDS2(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE2)
-#define REPEAT_WORDS3(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE3)
-#define REPEAT_WORDS4(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE4)
-#define REPEAT_WORDS5(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE5)
-#define REPEAT_WORDS6(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE6)
-#define REPEAT_WORDS7(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE7)
-#define REPEAT_WORDS8(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE8)
-#define REPEAT_WORDS9(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE9)
-#define REPEAT_WORDS10(phraseNumber) REPEAT_WORDS(phraseNumber, REPEAT_WORDS_SIMPLE10)
-
+};
 
 void fillPhraseSet(unsigned __int64* initialBufferPointer, unsigned __int64* bufferPointer, unsigned __int64* allWordsPointer, __int32* wordIndexes, unsigned __int64* permutationsPointer, int numberOfWords)
 {
@@ -125,34 +51,34 @@ void fillPhraseSet(unsigned __int64* initialBufferPointer, unsigned __int64* buf
     switch (numberOfWords)
     {
     case 1:
-        REPEAT_PHRASES(REPEAT_WORDS1);
+        Processor<1>::ProcessWordsForPhrase<0>(avx2initialBuffer, avx2buffer, allWordsPointer, wordIndexes, permutationsPointer);
         break;
     case 2:
-        REPEAT_PHRASES(REPEAT_WORDS2);
+        Processor<2>::ProcessWordsForPhrase<0>(avx2initialBuffer, avx2buffer, allWordsPointer, wordIndexes, permutationsPointer);
         break;
     case 3:
-        REPEAT_PHRASES(REPEAT_WORDS3);
+        Processor<3>::ProcessWordsForPhrase<0>(avx2initialBuffer, avx2buffer, allWordsPointer, wordIndexes, permutationsPointer);
         break;
     case 4:
-        REPEAT_PHRASES(REPEAT_WORDS4);
+        Processor<4>::ProcessWordsForPhrase<0>(avx2initialBuffer, avx2buffer, allWordsPointer, wordIndexes, permutationsPointer);
         break;
     case 5:
-        REPEAT_PHRASES(REPEAT_WORDS5);
+        Processor<5>::ProcessWordsForPhrase<0>(avx2initialBuffer, avx2buffer, allWordsPointer, wordIndexes, permutationsPointer);
         break;
     case 6:
-        REPEAT_PHRASES(REPEAT_WORDS6);
+        Processor<6>::ProcessWordsForPhrase<0>(avx2initialBuffer, avx2buffer, allWordsPointer, wordIndexes, permutationsPointer);
         break;
     case 7:
-        REPEAT_PHRASES(REPEAT_WORDS7);
+        Processor<7>::ProcessWordsForPhrase<0>(avx2initialBuffer, avx2buffer, allWordsPointer, wordIndexes, permutationsPointer);
         break;
     case 8:
-        REPEAT_PHRASES(REPEAT_WORDS8);
+        Processor<8>::ProcessWordsForPhrase<0>(avx2initialBuffer, avx2buffer, allWordsPointer, wordIndexes, permutationsPointer);
         break;
     case 9:
-        REPEAT_PHRASES(REPEAT_WORDS9);
+        Processor<9>::ProcessWordsForPhrase<0>(avx2initialBuffer, avx2buffer, allWordsPointer, wordIndexes, permutationsPointer);
         break;
     case 10:
-        REPEAT_PHRASES(REPEAT_WORDS10);
+        Processor<10>::ProcessWordsForPhrase<0>(avx2initialBuffer, avx2buffer, allWordsPointer, wordIndexes, permutationsPointer);
         break;
     }
 }

@@ -7,13 +7,12 @@
 
 #if AVX2
 
-//typedef __m256i MD5Vector;
 struct MD5Vector
 {
     __m256i m_V0;
     __m256i m_V1;
-    inline MD5Vector() {}
-    inline MD5Vector(__m256i C0, __m256i C1) :m_V0(C0), m_V1(C1) {}
+    __forceinline MD5Vector() {}
+    __forceinline MD5Vector(__m256i C0, __m256i C1) :m_V0(C0), m_V1(C1) {}
 
     __forceinline MD5Vector MXor(MD5Vector R) const
     {
@@ -30,66 +29,81 @@ struct MD5Vector
         return MD5Vector(_mm256_andnot_si256(m_V0, R.m_V0), _mm256_andnot_si256(m_V1, R.m_V1));
     }
 
-    __forceinline MD5Vector MOr(MD5Vector R) const
+    __forceinline const MD5Vector MOr(const MD5Vector R) const
     {
         return MD5Vector(_mm256_or_si256(m_V0, R.m_V0), _mm256_or_si256(m_V1, R.m_V1));
     }
 
-    __forceinline MD5Vector MAdd(MD5Vector R) const
+    __forceinline const MD5Vector MAdd(const MD5Vector R) const
     {
         return MD5Vector(_mm256_add_epi32(m_V0, R.m_V0), _mm256_add_epi32(m_V1, R.m_V1));
     }
 
-    __forceinline MD5Vector MShiftLeft(int shift) const
+    __forceinline const MD5Vector MShiftLeft(const int shift) const
     {
         return MD5Vector(_mm256_slli_epi32(m_V0, shift), _mm256_slli_epi32(m_V1, shift));
     }
 
-    __forceinline MD5Vector MShiftRight(int shift) const
+    __forceinline const MD5Vector MShiftRight(const int shift) const
     {
         return MD5Vector(_mm256_srli_epi32(m_V0, shift), _mm256_srli_epi32(m_V1, shift));
     }
+
+    template<int imm8>
+    __forceinline const MD5Vector Permute() const
+    {
+        return MD5Vector(_mm256_permute4x64_epi64(m_V0, imm8), _mm256_permute4x64_epi64(m_V1, imm8));
+    }
+
+    __forceinline const MD5Vector CompareEquality32(const __m256i other) const
+    {
+        return MD5Vector(_mm256_cmpeq_epi32(m_V0, other), _mm256_cmpeq_epi32(m_V1, other));
+    }
+
+    __forceinline void WriteMoveMask8(__int32 * output) const
+    {
+        output[0] = _mm256_movemask_epi8(m_V0);
+        output[1] = _mm256_movemask_epi8(m_V1);
+    }
 };
 
-#define OP_XOR(a, b) a.MXor(b)
-#define OP_AND(a, b) a.MAnd(b)
-#define OP_ANDNOT(a, b) a.MAndNot(b)
-#define OP_OR(a, b) a.MOr(b)
-#define OP_ADD(a, b) a.MAdd(b)
-#define OP_ROT(a, r) OP_OR(a.MShiftLeft(r), a.MShiftRight(32 - (r)))
-#define OP_BLEND(a, b, x) OP_OR(OP_AND(x, b), OP_ANDNOT(x, a))
+__forceinline const MD5Vector OP_XOR(const MD5Vector a, const MD5Vector b) { return a.MXor(b); }
+__forceinline const MD5Vector OP_AND(const MD5Vector a, const MD5Vector b) { return a.MAnd(b); }
+__forceinline const MD5Vector OP_ANDNOT(const MD5Vector a, const MD5Vector b) { return a.MAndNot(b); }
+__forceinline const MD5Vector OP_OR(const MD5Vector a, const MD5Vector b) { return a.MOr(b); }
+__forceinline const MD5Vector OP_ADD(const MD5Vector a, const MD5Vector b) { return a.MAdd(b); }
+template<int r>
+__forceinline const MD5Vector OP_ROT(const MD5Vector a) { return OP_OR(a.MShiftLeft(r), a.MShiftRight(32 - (r))); }
+__forceinline const MD5Vector OP_BLEND(const MD5Vector a, const MD5Vector b, const MD5Vector x) { return OP_OR(OP_AND(x, b), OP_ANDNOT(x, a)); }
 
-#define CREATE_VECTOR(a) MD5Vector(_mm256_set1_epi32(a), _mm256_set1_epi32(a))
-#define CREATE_VECTOR_FROM_INPUT(input, offset) MD5Vector(\
-_mm256_set_epi32( \
-    input[offset + 7 * 8], \
-    input[offset + 6 * 8], \
-    input[offset + 5 * 8], \
-    input[offset + 4 * 8], \
-    input[offset + 3 * 8], \
-    input[offset + 2 * 8], \
-    input[offset + 1 * 8], \
-    input[offset + 0 * 8]), \
-_mm256_set_epi32( \
-    input[offset + 15 * 8], \
-    input[offset + 14 * 8], \
-    input[offset + 13 * 8], \
-    input[offset + 12 * 8], \
-    input[offset + 11 * 8], \
-    input[offset + 10 * 8], \
-    input[offset + 9 * 8], \
-    input[offset + 8 * 8]) \
-)
+__forceinline const MD5Vector CREATE_VECTOR(const int a) { return MD5Vector(_mm256_set1_epi32(a), _mm256_set1_epi32(a)); }
+__forceinline const MD5Vector CREATE_VECTOR_FROM_INPUT(const unsigned __int32* input, const size_t offset) {
+    return MD5Vector(
+        _mm256_set_epi32(
+            input[offset + 7 * 8],
+            input[offset + 6 * 8],
+            input[offset + 5 * 8],
+            input[offset + 4 * 8],
+            input[offset + 3 * 8],
+            input[offset + 2 * 8],
+            input[offset + 1 * 8],
+            input[offset + 0 * 8]),
+        _mm256_set_epi32(
+            input[offset + 15 * 8],
+            input[offset + 14 * 8],
+            input[offset + 13 * 8],
+            input[offset + 12 * 8],
+            input[offset + 11 * 8],
+            input[offset + 10 * 8],
+            input[offset + 9 * 8],
+            input[offset + 8 * 8]));
+}
 
 #define WRITE_TO_OUTPUT(a, output, expected) \
-    output[0] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V0, 0 * 0x55))); \
-    output[1] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V1, 0 * 0x55))); \
-    output[2] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V0, 1 * 0x55))); \
-    output[3] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V1, 1 * 0x55))); \
-    output[4] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V0, 2 * 0x55))); \
-    output[5] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V1, 2 * 0x55))); \
-    output[6] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V0, 3 * 0x55))); \
-    output[7] = _mm256_movemask_epi8(_mm256_cmpeq_epi32(*expected, _mm256_permute4x64_epi64(a.m_V1, 3 * 0x55))); \
+    a.Permute<0 * 0x55>().CompareEquality32(*expected).WriteMoveMask8(output); \
+    a.Permute<1 * 0x55>().CompareEquality32(*expected).WriteMoveMask8(output + 2); \
+    a.Permute<2 * 0x55>().CompareEquality32(*expected).WriteMoveMask8(output + 4); \
+    a.Permute<3 * 0x55>().CompareEquality32(*expected).WriteMoveMask8(output + 6); \
     output[8] = _mm256_movemask_epi8(_mm256_cmpeq_epi8(*((__m256i*)output), _mm256_setzero_si256()));
 
 #elif SIMD
@@ -139,112 +153,59 @@ typedef unsigned int MD5Vector;
 
 #define OP_NEG(a) OP_ANDNOT(a, CREATE_VECTOR(0xffffffff))
 
-typedef struct {
-    unsigned int K[64];
-    unsigned int Init[4];
-} MD5Parameters;
+__forceinline const MD5Vector Blend(const MD5Vector a, const MD5Vector b, const MD5Vector x) { return OP_BLEND(a, b, x); }
+__forceinline const MD5Vector Xor(const MD5Vector a, const MD5Vector b, const MD5Vector c) { return OP_XOR(a, OP_XOR(b, c)); }
+__forceinline const MD5Vector I(const MD5Vector a, const MD5Vector b, const MD5Vector c) { return OP_XOR(a, OP_OR(b, OP_NEG(c))); }
 
-static const MD5Parameters Parameters = {
-    {
-        0xd76aa478,
-        0xe8c7b756,
-        0x242070db,
-        0xc1bdceee,
-        0xf57c0faf,
-        0x4787c62a,
-        0xa8304613,
-        0xfd469501,
-        0x698098d8,
-        0x8b44f7af,
-        0xffff5bb1,
-        0x895cd7be,
-        0x6b901122,
-        0xfd987193,
-        0xa679438e,
-        0x49b40821,
-        0xf61e2562,
-        0xc040b340,
-        0x265e5a51,
-        0xe9b6c7aa,
-        0xd62f105d,
-        0x02441453,
-        0xd8a1e681,
-        0xe7d3fbc8,
-        0x21e1cde6,
-        0xc33707d6,
-        0xf4d50d87,
-        0x455a14ed,
-        0xa9e3e905,
-        0xfcefa3f8,
-        0x676f02d9,
-        0x8d2a4c8a,
-        0xfffa3942,
-        0x8771f681,
-        0x6d9d6122,
-        0xfde5380c,
-        0xa4beea44,
-        0x4bdecfa9,
-        0xf6bb4b60,
-        0xbebfbc70,
-        0x289b7ec6,
-        0xeaa127fa,
-        0xd4ef3085,
-        0x04881d05,
-        0xd9d4d039,
-        0xe6db99e5,
-        0x1fa27cf8,
-        0xc4ac5665,
-        0xf4292244,
-        0x432aff97,
-        0xab9423a7,
-        0xfc93a039,
-        0x655b59c3,
-        0x8f0ccc92,
-        0xffeff47d,
-        0x85845dd1,
-        0x6fa87e4f,
-        0xfe2ce6e0,
-        0xa3014314,
-        0x4e0811a1,
-        0xf7537e82,
-        0xbd3af235,
-        0x2ad7d2bb,
-        0xeb86d391,
-    },
-    {
-        0x67452301,
-        0xefcdab89,
-        0x98badcfe,
-        0x10325476,
-    },
-};
+template<int r>
+__forceinline const MD5Vector StepOuter(const MD5Vector a, const MD5Vector b, const MD5Vector x) { return OP_ADD(b, OP_ROT<r>(x)); }
 
-#define Blend(a, b, x) OP_BLEND(a, b, x)
-#define Xor(a, b, c) OP_XOR(a, OP_XOR(b, c))
-#define I(a, b, c) OP_XOR(a, OP_OR(b, OP_NEG(c)))
+template<int r, unsigned __int32 k>
+__forceinline const MD5Vector Step1(const MD5Vector a, const MD5Vector b, const MD5Vector c, const MD5Vector d, const MD5Vector w) {
+    return StepOuter<r>(a, b, OP_ADD(Blend(d, c, b), OP_ADD(CREATE_VECTOR(k), OP_ADD(a, w))));
+}
 
-#define StepOuter(r, a, b, x) \
-    a = x; \
-    a = OP_ADD(b, OP_ROT(a, r));
+template<int r, unsigned __int32 k>
+__forceinline const MD5Vector Step1(const MD5Vector a, const MD5Vector b, const MD5Vector c, const MD5Vector d) {
+    return StepOuter<r>(a, b, OP_ADD(Blend(d, c, b), OP_ADD(CREATE_VECTOR(k), a)));
+}
 
-#define Step1(r, a, b, c, d, k, w) StepOuter(r, a, b, OP_ADD(Blend(d, c, b), OP_ADD(CREATE_VECTOR(k), OP_ADD(a, w))))
-#define Step1E(r, a, b, c, d, k)   StepOuter(r, a, b, OP_ADD(Blend(d, c, b), OP_ADD(CREATE_VECTOR(k), a)))
+template<int r, unsigned __int32 k>
+__forceinline const MD5Vector Step2(const MD5Vector a, const MD5Vector b, const MD5Vector c, const MD5Vector d, const MD5Vector w) {
+    return StepOuter<r>(a, c, OP_ADD(Blend(d, c, b), OP_ADD(CREATE_VECTOR(k), OP_ADD(a, w))));
+}
 
-#define Step2(r, a, b, c, d, k, w) StepOuter(r, a, c, OP_ADD(Blend(d, c, b), OP_ADD(CREATE_VECTOR(k), OP_ADD(a, w))))
-#define Step2E(r, a, b, c, d, k)   StepOuter(r, a, c, OP_ADD(Blend(d, c, b), OP_ADD(CREATE_VECTOR(k), a)))
+template<int r, unsigned __int32 k>
+__forceinline const MD5Vector Step2(const MD5Vector a, const MD5Vector b, const MD5Vector c, const MD5Vector d) {
+    return StepOuter<r>(a, c, OP_ADD(Blend(d, c, b), OP_ADD(CREATE_VECTOR(k), a)));
+}
 
-#define Step3(r, a, b, c, d, k, w) StepOuter(r, a, b, OP_ADD(Xor(b, c, d), OP_ADD(CREATE_VECTOR(k), OP_ADD(a, w))))
-#define Step3E(r, a, b, c, d, k)   StepOuter(r, a, b, OP_ADD(Xor(b, c, d), OP_ADD(CREATE_VECTOR(k), a)))
+template<int r, unsigned __int32 k>
+__forceinline const MD5Vector Step3(const MD5Vector a, const MD5Vector b, const MD5Vector c, const MD5Vector d, const MD5Vector w) {
+    return StepOuter<r>(a, b, OP_ADD(Xor(b, c, d), OP_ADD(CREATE_VECTOR(k), OP_ADD(a, w))));
+}
 
-#define Step4(r, a, b, c, d, k, w) StepOuter(r, a, b, OP_ADD(I(c, b, d), OP_ADD(CREATE_VECTOR(k), OP_ADD(a, w))))
-#define Step4E(r, a, b, c, d, k)   StepOuter(r, a, b, OP_ADD(I(c, b, d), OP_ADD(CREATE_VECTOR(k), a)))
+template<int r, unsigned __int32 k>
+__forceinline const MD5Vector Step3(const MD5Vector a, const MD5Vector b, const MD5Vector c, const MD5Vector d) {
+    return StepOuter<r>(a, b, OP_ADD(Xor(b, c, d), OP_ADD(CREATE_VECTOR(k), a)));
+}
+
+template<int r, unsigned __int32 k>
+__forceinline const MD5Vector Step4(const MD5Vector a, const MD5Vector b, const MD5Vector c, const MD5Vector d, const MD5Vector w) {
+    return StepOuter<r>(a, b, OP_ADD(I(c, b, d), OP_ADD(CREATE_VECTOR(k), OP_ADD(a, w))));
+}
+
+template<int r, unsigned __int32 k>
+__forceinline const MD5Vector Step4(const MD5Vector a, const MD5Vector b, const MD5Vector c, const MD5Vector d) {
+    return StepOuter<r>(a, b, OP_ADD(I(c, b, d), OP_ADD(CREATE_VECTOR(k), a)));
+}
 
 void md5(unsigned __int32 * input, unsigned __int32 * expected)
 {
-    MD5Vector a = CREATE_VECTOR(Parameters.Init[0]);
-    MD5Vector b = CREATE_VECTOR(Parameters.Init[1]);
-    MD5Vector c = CREATE_VECTOR(Parameters.Init[2]);
-    MD5Vector d = CREATE_VECTOR(Parameters.Init[3]);
+    MD5Vector a = CREATE_VECTOR(0x67452301);
+    MD5Vector b = CREATE_VECTOR(0xefcdab89);
+    MD5Vector c = CREATE_VECTOR(0x98badcfe);
+    MD5Vector d = CREATE_VECTOR(0x10325476);
 
     MD5Vector inputVector0 = CREATE_VECTOR_FROM_INPUT(input, 0);
     MD5Vector inputVector1 = CREATE_VECTOR_FROM_INPUT(input, 1);
@@ -255,72 +216,72 @@ void md5(unsigned __int32 * input, unsigned __int32 * expected)
     MD5Vector inputVector6 = CREATE_VECTOR_FROM_INPUT(input, 6);
     MD5Vector inputVector7 = CREATE_VECTOR_FROM_INPUT(input, 7);
 
-    a = Step1 ( 7, a, b, c, d, Parameters.K[ 0], inputVector0);
-    d = Step1 (12, d, a, b, c, Parameters.K[ 1], inputVector1);
-    c = Step1 (17, c, d, a, b, Parameters.K[ 2], inputVector2);
-    b = Step1 (22, b, c, d, a, Parameters.K[ 3], inputVector3);
-    a = Step1 ( 7, a, b, c, d, Parameters.K[ 4], inputVector4);
-    d = Step1 (12, d, a, b, c, Parameters.K[ 5], inputVector5);
-    c = Step1 (17, c, d, a, b, Parameters.K[ 6], inputVector6);
-    b = Step1E(22, b, c, d, a, Parameters.K[ 7]);
-    a = Step1E( 7, a, b, c, d, Parameters.K[ 8]);
-    d = Step1E(12, d, a, b, c, Parameters.K[ 9]);
-    c = Step1E(17, c, d, a, b, Parameters.K[10]);
-    b = Step1E(22, b, c, d, a, Parameters.K[11]);
-    a = Step1E( 7, a, b, c, d, Parameters.K[12]);
-    d = Step1E(12, d, a, b, c, Parameters.K[13]);
-    c = Step1 (17, c, d, a, b, Parameters.K[14], inputVector7);
-    b = Step1E(22, b, c, d, a, Parameters.K[15]);
+    a = Step1< 7, 0xd76aa478>(a, b, c, d, inputVector0);
+    d = Step1<12, 0xe8c7b756>(d, a, b, c, inputVector1);
+    c = Step1<17, 0x242070db>(c, d, a, b, inputVector2);
+    b = Step1<22, 0xc1bdceee>(b, c, d, a, inputVector3);
+    a = Step1< 7, 0xf57c0faf>(a, b, c, d, inputVector4);
+    d = Step1<12, 0x4787c62a>(d, a, b, c, inputVector5);
+    c = Step1<17, 0xa8304613>(c, d, a, b, inputVector6);
+    b = Step1<22, 0xfd469501>(b, c, d, a);
+    a = Step1< 7, 0x698098d8>(a, b, c, d);
+    d = Step1<12, 0x8b44f7af>(d, a, b, c);
+    c = Step1<17, 0xffff5bb1>(c, d, a, b);
+    b = Step1<22, 0x895cd7be>(b, c, d, a);
+    a = Step1< 7, 0x6b901122>(a, b, c, d);
+    d = Step1<12, 0xfd987193>(d, a, b, c);
+    c = Step1<17, 0xa679438e>(c, d, a, b, inputVector7);
+    b = Step1<22, 0x49b40821>(b, c, d, a);
 
-    a = Step2 ( 5, a, d, b, c, Parameters.K[16], inputVector1);
-    d = Step2 ( 9, d, c, a, b, Parameters.K[17], inputVector6);
-    c = Step2E(14, c, b, d, a, Parameters.K[18]);
-    b = Step2 (20, b, a, c, d, Parameters.K[19], inputVector0);
-    a = Step2 ( 5, a, d, b, c, Parameters.K[20], inputVector5);
-    d = Step2E( 9, d, c, a, b, Parameters.K[21]);
-    c = Step2E(14, c, b, d, a, Parameters.K[22]);
-    b = Step2 (20, b, a, c, d, Parameters.K[23], inputVector4);
-    a = Step2E( 5, a, d, b, c, Parameters.K[24]);
-    d = Step2 ( 9, d, c, a, b, Parameters.K[25], inputVector7);
-    c = Step2 (14, c, b, d, a, Parameters.K[26], inputVector3);
-    b = Step2E(20, b, a, c, d, Parameters.K[27]);
-    a = Step2E( 5, a, d, b, c, Parameters.K[28]);
-    d = Step2 ( 9, d, c, a, b, Parameters.K[29], inputVector2);
-    c = Step2E(14, c, b, d, a, Parameters.K[30]);
-    b = Step2E(20, b, a, c, d, Parameters.K[31]);
+    a = Step2< 5, 0xf61e2562>(a, d, b, c, inputVector1);
+    d = Step2< 9, 0xc040b340>(d, c, a, b, inputVector6);
+    c = Step2<14, 0x265e5a51>(c, b, d, a);
+    b = Step2<20, 0xe9b6c7aa>(b, a, c, d, inputVector0);
+    a = Step2< 5, 0xd62f105d>(a, d, b, c, inputVector5);
+    d = Step2< 9, 0x02441453>(d, c, a, b);
+    c = Step2<14, 0xd8a1e681>(c, b, d, a);
+    b = Step2<20, 0xe7d3fbc8>(b, a, c, d, inputVector4);
+    a = Step2< 5, 0x21e1cde6>(a, d, b, c);
+    d = Step2< 9, 0xc33707d6>(d, c, a, b, inputVector7);
+    c = Step2<14, 0xf4d50d87>(c, b, d, a, inputVector3);
+    b = Step2<20, 0x455a14ed>(b, a, c, d);
+    a = Step2< 5, 0xa9e3e905>(a, d, b, c);
+    d = Step2< 9, 0xfcefa3f8>(d, c, a, b, inputVector2);
+    c = Step2<14, 0x676f02d9>(c, b, d, a);
+    b = Step2<20, 0x8d2a4c8a>(b, a, c, d);
 
-    a = Step3 ( 4, a, b, c, d, Parameters.K[32], inputVector5);
-    d = Step3E(11, d, a, b, c, Parameters.K[33]);
-    c = Step3E(16, c, d, a, b, Parameters.K[34]);
-    b = Step3 (23, b, c, d, a, Parameters.K[35], inputVector7);
-    a = Step3 ( 4, a, b, c, d, Parameters.K[36], inputVector1);
-    d = Step3 (11, d, a, b, c, Parameters.K[37], inputVector4);
-    c = Step3E(16, c, d, a, b, Parameters.K[38]);
-    b = Step3E(23, b, c, d, a, Parameters.K[39]);
-    a = Step3E( 4, a, b, c, d, Parameters.K[40]);
-    d = Step3 (11, d, a, b, c, Parameters.K[41], inputVector0);
-    c = Step3 (16, c, d, a, b, Parameters.K[42], inputVector3);
-    b = Step3 (23, b, c, d, a, Parameters.K[43], inputVector6);
-    a = Step3E( 4, a, b, c, d, Parameters.K[44]);
-    d = Step3E(11, d, a, b, c, Parameters.K[45]);
-    c = Step3E(16, c, d, a, b, Parameters.K[46]);
-    b = Step3 (23, b, c, d, a, Parameters.K[47], inputVector2);
+    a = Step3< 4, 0xfffa3942>(a, b, c, d, inputVector5);
+    d = Step3<11, 0x8771f681>(d, a, b, c);
+    c = Step3<16, 0x6d9d6122>(c, d, a, b);
+    b = Step3<23, 0xfde5380c>(b, c, d, a, inputVector7);
+    a = Step3< 4, 0xa4beea44>(a, b, c, d, inputVector1);
+    d = Step3<11, 0x4bdecfa9>(d, a, b, c, inputVector4);
+    c = Step3<16, 0xf6bb4b60>(c, d, a, b);
+    b = Step3<23, 0xbebfbc70>(b, c, d, a);
+    a = Step3< 4, 0x289b7ec6>(a, b, c, d);
+    d = Step3<11, 0xeaa127fa>(d, a, b, c, inputVector0);
+    c = Step3<16, 0xd4ef3085>(c, d, a, b, inputVector3);
+    b = Step3<23, 0x04881d05>(b, c, d, a, inputVector6);
+    a = Step3< 4, 0xd9d4d039>(a, b, c, d);
+    d = Step3<11, 0xe6db99e5>(d, a, b, c);
+    c = Step3<16, 0x1fa27cf8>(c, d, a, b);
+    b = Step3<23, 0xc4ac5665>(b, c, d, a, inputVector2);
 
-    a = Step4 ( 6, a, b, c, d, Parameters.K[48], inputVector0);
-    d = Step4E(10, d, a, b, c, Parameters.K[49]);
-    c = Step4 (15, c, d, a, b, Parameters.K[50], inputVector7);
-    b = Step4 (21, b, c, d, a, Parameters.K[51], inputVector5);
-    a = Step4E( 6, a, b, c, d, Parameters.K[52]);
-    d = Step4 (10, d, a, b, c, Parameters.K[53], inputVector3);
-    c = Step4E(15, c, d, a, b, Parameters.K[54]);
-    b = Step4 (21, b, c, d, a, Parameters.K[55], inputVector1);
-    a = Step4E( 6, a, b, c, d, Parameters.K[56]);
-    d = Step4E(10, d, a, b, c, Parameters.K[57]);
-    c = Step4 (15, c, d, a, b, Parameters.K[58], inputVector6);
-    b = Step4E(21, b, c, d, a, Parameters.K[59]);
-    a = Step4 ( 6, a, b, c, d, Parameters.K[60], inputVector4);
+    a = Step4< 6, 0xf4292244>(a, b, c, d, inputVector0);
+    d = Step4<10, 0x432aff97>(d, a, b, c);
+    c = Step4<15, 0xab9423a7>(c, d, a, b, inputVector7);
+    b = Step4<21, 0xfc93a039>(b, c, d, a, inputVector5);
+    a = Step4< 6, 0x655b59c3>(a, b, c, d);
+    d = Step4<10, 0x8f0ccc92>(d, a, b, c, inputVector3);
+    c = Step4<15, 0xffeff47d>(c, d, a, b);
+    b = Step4<21, 0x85845dd1>(b, c, d, a, inputVector1);
+    a = Step4< 6, 0x6fa87e4f>(a, b, c, d);
+    d = Step4<10, 0xfe2ce6e0>(d, a, b, c);
+    c = Step4<15, 0xa3014314>(c, d, a, b, inputVector6);
+    b = Step4<21, 0x4e0811a1>(b, c, d, a);
+    a = Step4< 6, 0xf7537e82>(a, b, c, d, inputVector4);
 
-    a = OP_ADD(CREATE_VECTOR(Parameters.Init[0]), a);
+    a = OP_ADD(CREATE_VECTOR(0x67452301), a);
 
     WRITE_TO_OUTPUT(a, ((__int32*)input), ((__m256i*)expected));
 }
