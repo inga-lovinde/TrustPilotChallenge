@@ -78,24 +78,8 @@ __forceinline const MD5Vector CREATE_VECTOR(const int a) { return MD5Vector(_mm2
 __forceinline const MD5Vector CREATE_VECTOR_FROM_INPUT(const unsigned __int32* input, const size_t offset)
 {
     return MD5Vector(
-        _mm256_set_epi32(
-            input[offset + 7 * 8],
-            input[offset + 6 * 8],
-            input[offset + 5 * 8],
-            input[offset + 4 * 8],
-            input[offset + 3 * 8],
-            input[offset + 2 * 8],
-            input[offset + 1 * 8],
-            input[offset + 0 * 8]),
-        _mm256_set_epi32(
-            input[offset + 15 * 8],
-            input[offset + 14 * 8],
-            input[offset + 13 * 8],
-            input[offset + 12 * 8],
-            input[offset + 11 * 8],
-            input[offset + 10 * 8],
-            input[offset + 9 * 8],
-            input[offset + 8 * 8]));
+        _mm256_i32gather_epi32((int*)(input + offset), _mm256_set_epi32(7 * 8, 6 * 8, 5 * 8, 4 * 8, 3 * 8, 2 * 8, 1 * 8, 0 * 8), 4),
+        _mm256_i32gather_epi32((int*)(input + offset), _mm256_set_epi32(15 * 8, 14 * 8, 13 * 8, 12 * 8, 11 * 8, 10 * 8, 9 * 8, 8 * 8), 4));
 }
 
 #define WRITE_TO_OUTPUT(a, output, expected) \
